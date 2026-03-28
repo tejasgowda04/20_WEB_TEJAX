@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Login – EduEvent</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
 </head>
 <body class="auth-page">
   <div class="auth-left" id="authLeft">
@@ -50,9 +50,9 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="../js/db.js"></script>
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/firebase_auth.js"></script>
+  <script src="/static/js/db.js?v=2"></script>
+  <script src="/static/js/api.js?v=2"></script>
+  <script src="/static/js/firebase_auth.js?v=2"></script>
 {% verbatim %}
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -107,18 +107,18 @@
       errEl.classList.remove('show');
 
       try {
-        const result = await firebaseLogin(email, pass, role);
+        const result = await firebaseLogin(email, pass, role).catch(err => {
+          throw new Error(err.message || 'Login failed. Please check credentials.');
+        });
+        
         if (result && result.success) {
-          localStorage.setItem('eduevent_user', JSON.stringify(result.user));
           redirectToDashboard(role);
-        } else {
-          throw new Error('Login failed. Please check your credentials.');
         }
       } catch(err) {
         console.error('Login error:', err);
-        errEl.textContent = err.message || 'Login failed. Please check credentials.';
+        errEl.textContent = err.message;
         errEl.classList.add('show');
-        btn.innerHTML = '<span id="loginBtnText">Sign In</span>';
+        btn.innerHTML = '<span>Sign In</span>';
         btn.disabled  = false;
       }
     });
@@ -131,3 +131,4 @@
 {% endverbatim %}
 </body>
 </html>
+

@@ -1,0 +1,30 @@
+{% extends "email/../base.html" %}
+
+{% block content %}
+<div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8f9fa;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #667eea; margin-top: 0;">New {{ user.role|title }} Registration Request</h2>
+        
+        <p>Hello Admin,</p>
+        
+        <p>A new user has registered for an account on the EduEvent platform and is awaiting your approval to access their dashboard.</p>
+        
+        <div style="background-color: #f1f5f9; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Name:</strong> {{ user.name }}</p>
+            <p style="margin: 5px 0;"><strong>Role:</strong> {{ user.role|title }}</p>
+            <p style="margin: 5px 0;"><strong>Email:</strong> {{ user.email }}</p>
+            <p style="margin: 5px 0;"><strong>Branch:</strong> {{ user.branch }}</p>
+        </div>
+        
+        <p>Please log in to the Admin Dashboard and navigate to the <strong>User Management</strong> page to approve or decline this request.</p>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ site_url }}/pages/login.html?role=admin" style="background-color: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Review Registration in Dashboard</a>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+        <p style="color: #64748b; font-size: 12px; margin: 0;">This is an automated request notification from the EduEvent Platform.</p>
+    </div>
+</div>
+{% endblock %}
+

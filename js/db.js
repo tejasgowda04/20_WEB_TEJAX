@@ -111,23 +111,27 @@ const DB = {
     this._cache.events.push(ev);
 
     // Call Supabase/Django API to persist
-    this._postCSRF('/api/events/create/', {
+    return this._postCSRF('/api/events/create/', {
       title: ev.title, description: ev.description, date: ev.date, end_date: ev.endDate || ev.date,
       venue_id: ev.venueId, category: ev.category, expected_attendees: ev.expectedAttendees || 100,
       organizer: ev.organizer, branch: ev.branch
     }).then(res => {
       if (res && res.event) {
         const idx = this._cache.events.findIndex(e => e.id === ev.id);
-        if (idx !== -1) this._cache.events[idx] = this._normalizeEvent(res.event);
+        if (idx !== -1) {
+            this._cache.events[idx] = this._normalizeEvent(res.event);
+        } else {
+            this._cache.events.push(this._normalizeEvent(res.event));
+        }
         
         // Trigger Email Notification
         this._post('/api/email/new-event/', {
           title: ev.title, hod_name: ev.organizer, branch: ev.branch, date: ev.date, venue_name: ev.venueName
         });
+        return res.event;
       }
+      return res;
     });
-    this.addNotification('admin', `New event: "${ev.title}".`);
-    return ev;
   },
 
   deleteEvent(id) {

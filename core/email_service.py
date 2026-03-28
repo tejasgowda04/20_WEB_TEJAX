@@ -52,6 +52,21 @@ def notify_new_event_request(event):
         recipient_list=emails,
     )
 
+def notify_new_user_registration(user_profile):
+    """Notify admin(s) about a new user registration that needs approval."""
+    from core.models import UserProfile
+    admins = UserProfile.objects.filter(role='admin', is_active=True, email_notifications=True)
+    emails = list(admins.values_list('email', flat=True))
+
+    _send(
+        subject=f"New Registration Approval Required: {user_profile.name} ({user_profile.role.capitalize()})",
+        template_name='new_user_registration',
+        context={
+            'user': user_profile,
+        },
+        recipient_list=emails,
+    )
+
 
 def notify_event_approved(event):
     """Notify HOD and relevant students that an event was approved."""

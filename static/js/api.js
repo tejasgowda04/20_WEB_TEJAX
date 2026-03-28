@@ -11,7 +11,7 @@ const API = {
   async _fetch(url, options = {}) {
     const defaults = {
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
-      credentials: 'same-origin',
+      credentials: 'include',
     };
     const res = await fetch(this.BASE + url, { ...defaults, ...options });
     const data = await res.json();

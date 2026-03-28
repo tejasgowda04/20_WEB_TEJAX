@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Teacher Dashboard – EduEvent</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
 </head>
 <body class="dashboard">
 
@@ -196,7 +196,7 @@
     </div>
   </div>
 
-  <script src="../js/db.js"></script>
+  <script src="/static/js/db.js"></script>
 {% verbatim %}
   <script>
   // ── Auth Guard ──────────────────────────────────────────────────────────
@@ -389,7 +389,7 @@
     const branch   = document.getElementById('allEvBranch').value;
     const time     = document.getElementById('allEvTime').value;
     const category = document.getElementById('allEvCategory').value;
-    const today    = new Date();
+    const today    = new Date(); today.setHours(0,0,0,0);
     let events = DB.getEvents({status:'approved'});
     if (search)   events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search)||e.organizer.toLowerCase().includes(search));
     if (branch)   events = events.filter(e=>e.branch===branch);
@@ -426,7 +426,7 @@
   function renderVenues() {
     const venues = DB.get(DB.KEYS.VENUES);
     const events  = DB.getEvents({status:'approved'});
-    const today   = new Date();
+    const today   = new Date(); today.setHours(0,0,0,0);
     const el = document.getElementById('venueScheduleGrid');
     el.innerHTML = venues.map(v=>{
       const vEvents = events.filter(e=>e.venueId===v.id).sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -522,3 +522,4 @@
 {% endverbatim %}
 </body>
 </html>
+

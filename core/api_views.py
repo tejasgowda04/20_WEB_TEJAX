@@ -93,12 +93,15 @@ def api_register(request):
         is_approved=False,
     )
 
-    # Notify admin
+    # Notify admin via push notification
     Notification.objects.create(
         target_role='admin',
         message=f"New {role} registration: {name} ({email}) awaiting approval.",
         link='/dashboard/admin/#users',
     )
+    
+    # Notify admin via SMTP email
+    email_service.notify_new_user_registration(profile)
 
     return JsonResponse({'success': True, 'message': 'Registration successful. Pending admin approval.'})
 
@@ -116,12 +119,22 @@ def api_login(request):
         return JsonResponse({'error': 'Invalid credentials.'}, status=400)
 
     try:
-        user = UserProfile.objects.get(
-            Q(firebase_uid=firebase_uid) | Q(email=email),
-            role=role
-        )
+        # First check if the user exists at all
+        user = UserProfile.objects.get(Q(firebase_uid=firebase_uid) | Q(email=email))
     except UserProfile.DoesNotExist:
-        return JsonResponse({'error': 'User not found. Please register first.'}, status=404)
+        return JsonResponse({'error': f'No account found with email {email}. Please register first.'}, status=404)
+    except UserProfile.MultipleObjectsReturned:
+        # Fallback to specific role if multiple found (unlikely due to unique email)
+        user = UserProfile.objects.filter(Q(firebase_uid=firebase_uid) | Q(email=email), role=role).first()
+        if not user:
+             return JsonResponse({'error': 'Conflicting account roles. Contact admin.'}, status=400)
+
+    # Now verify if the role matches the portal they are trying to access
+    if user.role != role:
+        return JsonResponse({
+            'error': f'Access Denied: Your account is registered as a {user.role.upper()}, but you are trying to login to the {role.upper()} portal. Please use the correct role selection.',
+            'correct_role': user.role
+        }, status=403)
 
     if not user.is_active:
         return JsonResponse({'error': 'Account deactivated. Contact admin.'}, status=403)
@@ -298,6 +311,7 @@ def api_create_event(request):
     # Email notification
     email_service.notify_new_event_request(event)
 
+    event.refresh_from_db()
     return JsonResponse({'success': True, 'event': _event_json(event)})
 
 
@@ -368,13 +382,13 @@ def api_update_event(request, event_id):
         event.delete()
         return JsonResponse({'success': True, 'deleted': True})
 
-    else:
-        # General field updates
-        for field in ['title', 'description', 'category', 'expected_attendees']:
-            if field in data:
-                setattr(event, field, data[field])
-        event.save()
+    # General field updates
+    for field in ['title', 'description', 'category', 'expected_attendees']:
+        if field in data:
+            setattr(event, field, data[field])
+    event.save()
 
+    event.refresh_from_db()
     return JsonResponse({'success': True, 'event': _event_json(event)})
 
 

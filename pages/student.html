@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Student Dashboard – EduEvent</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
 </head>
 <body class="dashboard">
 
@@ -227,7 +227,7 @@
     </div>
   </div>
 
-  <script src="../js/db.js"></script>
+  <script src="/static/js/db.js"></script>
 {% verbatim %}
   <script>
   // ── Auth Guard ──────────────────────────────────────────────────────────
@@ -387,7 +387,7 @@
     const search   = document.getElementById('upSearch').value.toLowerCase();
     const branch   = document.getElementById('upBranch').value;
     const category = document.getElementById('upCategory').value;
-    const today = new Date();
+    const today = new Date(); today.setHours(0,0,0,0);
     let events = DB.getEvents({status:'approved'}).filter(e=>new Date(e.date)>=today);
     if (search)   events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search));
     if (branch)   events = events.filter(e=>e.branch===branch);
@@ -402,7 +402,7 @@
   function renderPast() {
     const search = document.getElementById('pastSearch').value.toLowerCase();
     const branch = document.getElementById('pastBranch').value;
-    const today  = new Date();
+    const today  = new Date(); today.setHours(0,0,0,0);
     let events = DB.getEvents({status:'approved'}).filter(e=>new Date(e.date)<today);
     if (search) events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search));
     if (branch) events = events.filter(e=>e.branch===branch);
@@ -418,7 +418,7 @@
     const branch   = document.getElementById('allBranch').value;
     const category = document.getElementById('allCategory').value;
     const time     = document.getElementById('allTime').value;
-    const today    = new Date();
+    const today    = new Date(); today.setHours(0,0,0,0);
     let events = DB.getEvents({status:'approved'});
     if (search)   events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search));
     if (branch)   events = events.filter(e=>e.branch===branch);
@@ -581,3 +581,4 @@
 {% endverbatim %}
 </body>
 </html>
+

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard – EduEvent</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
   <style>
     .conflict-alert { animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
@@ -288,7 +288,7 @@
     </div>
   </div>
 
-  <script src="../js/db.js"></script>
+  <script src="/static/js/db.js?v=2"></script>
 {% verbatim %}
   <script>
   // ── Auth Guard ──────────────────────────────────────────────────────────
@@ -327,14 +327,18 @@
     renderPage(name);
   }
 
-  function renderPage(name) {
+  async function renderPage(name) {
     const renders = {
-      dashboard: renderDashboard, pendingEvents: renderPending,
-      allEvents: renderAllEvents, venues: renderVenues,
-      conflicts: renderConflicts, users: () => renderUsers('pending'),
-      notifications: renderNotifications, analytics: renderAnalytics,
+      dashboard: renderDashboard, 
+      pendingEvents: renderPending,
+      allEvents: renderAllEvents, 
+      venues: renderVenues,
+      conflicts: renderConflicts, 
+      users: () => renderUsers('pending'),
+      notifications: renderNotifications, 
+      analytics: renderAnalytics,
     };
-    if (renders[name]) renders[name]();
+    if (renders[name]) await renders[name]();
   }
 
   // ── Shared Utilities ─────────────────────────────────────────────────────
@@ -372,10 +376,15 @@
   }
 
   // ── Dashboard ────────────────────────────────────────────────────────────
-  function renderDashboard() {
-    const events   = DB.getEvents();
-    const upcoming = events.filter(e => !isPast(e.date) && e.status ==='approved');
-    const pending  = DB.getEvents({status:'pending'});
+  async function renderDashboard() {
+    // Refresh events from API for real-time dashboard
+    const res = await DB._fetch('/api/events/?t=' + Date.now());
+    if (res && res.events) DB._cache.events = res.events.map(e => DB._normalizeEvent(e));
+    
+    const events = DB.getEvents();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const pending = events.filter(e=>e.status==='pending');
+    const upcoming = events.filter(e=>e.status==='approved' && new Date(e.date)>=today);
     const users    = DB.getAllUsers();
     const venues   = DB.get(DB.KEYS.VENUES);
     const conflicts= detectAllConflicts();
@@ -425,7 +434,18 @@
   }
 
   // ── Pending Events ────────────────────────────────────────────────────────
-  function renderPending() {
+  async function renderPending() {
+    // Refresh events from API for real-time 
+    const res = await DB._fetch('/api/events/?status=pending&t=' + Date.now());
+    if (res && res.events) {
+       // Only update pending events in cache to avoid losing other data
+       const pIds = res.events.map(e=>e.id);
+       DB._cache.events = DB._cache.events.filter(e => e.status !== 'pending' || pIds.includes(e.id));
+       res.events.forEach(e => {
+         if (!DB._cache.events.find(ex => ex.id === e.id)) DB._cache.events.push(DB._normalizeEvent(e));
+       });
+    }
+
     const pending = DB.getEvents({status:'pending'});
     const el = document.getElementById('pendingEventsList');
     if (!pending.length) {
@@ -629,9 +649,15 @@
     renderUsers(tab);
   }
 
-  function renderUsers(tab) {
+  async function renderUsers(tab) {
     currentUserTab = tab;
     const el = document.getElementById('usersContent');
+    el.innerHTML = '<div style="text-align:center;padding:2rem;"><span class="loader"></span> Loading users...</div>';
+    
+    // Always force fetch fresh data when rendering users to guarantee no missed requests
+    const uRes = await DB._fetch('/api/users/?t=' + Date.now());
+    if (uRes && uRes.users) DB._cache.users = uRes.users;
+
     let users;
     if (tab==='pending') {
       users = DB.getPendingUsers();
@@ -684,7 +710,7 @@
         <div class="${n.read?'notif-dot-read':'notif-dot-unread'}"></div>
         <div>
           <div class="notif-msg" style="${n.read?'color:var(--text-muted)':''}">${n.message}</div>
-          <div class="notif-time">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
+          <div class="notif-time">${new Date(n.created_at || new Date()).toLocaleString('en-IN')}</div>
         </div>
       </div>`).join('');
     updateBadges();
@@ -848,3 +874,4 @@
 {% endverbatim %}
 </body>
 </html>
+

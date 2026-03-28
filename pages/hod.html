@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HOD Dashboard – EduEvent</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
 </head>
 <body class="dashboard">
 
@@ -228,7 +228,7 @@
     </div>
   </div>
 
-  <script src="../js/db.js"></script>
+  <script src="/static/js/db.js"></script>
 {% verbatim %}
   <script>
   let user = null;
@@ -432,23 +432,30 @@
     if (!category) { errEl.textContent='Please select a category.'; errEl.classList.add('show'); return; }
     if (new Date(date) < new Date(new Date().toDateString())) { errEl.textContent='Event date must be today or in the future.'; errEl.classList.add('show'); return; }
 
+    const venues = DB.get(DB.KEYS.VENUES);
     const venue = venues.find(v=>v.id===venueId);
     const btn = document.getElementById('reqBtn');
     btn.innerHTML='<span class="loader"></span>'; btn.disabled=true;
 
-    setTimeout(()=>{
-      DB.addEvent({
-        title, description:desc, date, endDate, venueId, venueName:venue?.name||venueId,
-        category, expectedAttendees:attendees, organizer,
-        branch: user.branch||user.department, hodId: user.id,
-      });
-      sucEl.textContent='✅ Event request submitted successfully! Admin will review it shortly.';
-      sucEl.classList.add('show');
-      document.getElementById('eventRequestForm').reset();
-      document.getElementById('conflictWarning').style.display='none';
-      btn.innerHTML='<span>📤 Submit Request</span>'; btn.disabled=false;
-      updateBadges();
-    }, 600);
+    DB.addEvent({
+      title, description:desc, date, endDate, venueId, venueName:venue?.name||venueId,
+      category, expectedAttendees:attendees, organizer,
+      branch: user.branch||user.department, hodId: user.id,
+    }).then(result => {
+      if (result && !result._error) {
+        sucEl.textContent='✅ Event request submitted successfully! Admin will review it shortly.';
+        sucEl.classList.add('show');
+        document.getElementById('eventRequestForm').reset();
+        document.getElementById('conflictWarning').style.display='none';
+        btn.innerHTML='<span>📤 Submit Request</span>'; btn.disabled=false;
+        updateBadges();
+        renderMyEvents();
+      } else {
+        errEl.textContent = 'Failed to submit: ' + (result?.error || 'Server error');
+        errEl.classList.add('show');
+        btn.innerHTML='<span>📤 Retry Submission</span>'; btn.disabled=false;
+      }
+    });
   });
 
   // ── Suggestions ────────────────────────────────────────────────────────
@@ -574,3 +581,4 @@
 {% endverbatim %}
 </body>
 </html>
+
