@@ -1,0 +1,14 @@
+<div style="font-family:Inter,Arial,sans-serif;background:#0a0d1a;color:#e2e8f0;padding:2rem;max-width:600px;margin:0 auto">
+  <div style="text-align:center;margin-bottom:1.5rem"><span style="font-size:1.5rem;font-weight:800">🎓 EduEvent</span></div>
+  <div style="background:#0f1629;border:1px solid #1e293b;border-radius:12px;padding:1.5rem">
+    <h2 style="color:#3b82f6;margin-bottom:1rem">🌐 Open Event Announcement</h2>
+    <p>A new public event has been posted:</p>
+    <div style="background:#1e293b;padding:1rem;border-radius:8px;margin:1rem 0">
+      <strong>{{ event.title }}</strong><br>
+      📅 {{ event.date }}<br>📍 {{ event.venue_name }}<br>🏛️ {{ event.branch }}<br>👤 {{ event.organizer }}
+    </div>
+    <a href="{{ public_url }}" style="display:inline-block;background:#3b82f6;color:white;padding:.5rem 1.5rem;border-radius:8px;text-decoration:none">View & Share →</a>
+  </div>
+  <p style="text-align:center;font-size:.75rem;color:#64748b;margin-top:1rem">{{ college_name }}</p>
+</div>
+

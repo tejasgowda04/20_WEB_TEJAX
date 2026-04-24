@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}College Calendar{% endblock %}
+{% block body_class %}calendar-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .calendar-page { padding:2rem; max-width:1000px; margin:0 auto; }
+  .cal-header { text-align:center; margin-bottom:2rem; }
+  .cal-title { font-size:2rem; font-weight:800; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:.5rem; }
+  .cal-sub { color:var(--text-muted); font-size:.9rem; }
+  .cal-back { display:inline-block; margin-bottom:1rem; color:var(--text-muted); text-decoration:none; font-size:.85rem; }
+  .cal-back:hover { color:var(--text-primary); }
+  .cal-legend { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:1.5rem; }
+  .cal-legend-item { display:flex; align-items:center; gap:.3rem; font-size:.75rem; color:var(--text-muted); }
+  .cal-legend-dot { width:10px; height:10px; border-radius:50%; }
+  .cal-list { display:flex; flex-direction:column; gap:.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-page">
+  <a href="javascript:history.back()" class="cal-back">← Back</a>
+  <div class="cal-header">
+    <div class="cal-title">🗓️ College Calendar</div>
+    <div class="cal-sub">{{ COLLEGE_NAME }} – Academic Calendar & Important Dates</div>
+  </div>
+  <div class="cal-legend">
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#f59e0b"></div> Holiday</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#ef4444"></div> Exam</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#8b5cf6"></div> Vacation</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#10b981"></div> Semester</div>
+    <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#667eea"></div> Event</div>
+  </div>
+  <div class="cal-list" id="calEntries">Loading...</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const calTypeColors = { holiday:'#f59e0b', exam:'#ef4444', semester_start:'#10b981', semester_end:'#3b82f6', vacation:'#8b5cf6', event:'#667eea', other:'#94a3b8' };
+
+  (async () => {
+    try {
+      const data = await API.getCalendar(new Date().getFullYear());
+      const el = document.getElementById('calEntries');
+      if (!data.entries.length) { el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:3rem">No calendar entries.</div>'; return; }
+      el.innerHTML = data.entries.sort((a,b) => a.date.localeCompare(b.date)).map(e => `
+        <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;border-left:4px solid ${calTypeColors[e.type]||'#94a3b8'}">
+          <div style="min-width:55px;text-align:center">
+            <div style="font-size:1.3rem;font-weight:800">${new Date(e.date).getDate()}</div>
+            <div style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase">${new Date(e.date).toLocaleString('en',{month:'short'})}</div>
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:.95rem">${e.title}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">${e.type_display}${e.end_date ? ' · Until '+fmtDate(e.end_date) : ''}${e.is_recurring ? ' · 🔁 Yearly' : ''}</div>
+          </div>
+        </div>`).join('');
+    } catch (e) {
+      document.getElementById('calEntries').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:3rem">Login required to view calendar.</div>';
+    }
+  })();
+</script>
+{% endblock %}
+

@@ -1,0 +1,12 @@
+<div style="font-family:Inter,Arial,sans-serif;background:#0a0d1a;color:#e2e8f0;padding:2rem;max-width:600px;margin:0 auto">
+  <div style="text-align:center;margin-bottom:1.5rem"><span style="font-size:1.5rem;font-weight:800">🎓 EduEvent</span></div>
+  <div style="background:#0f1629;border:1px solid #1e293b;border-radius:12px;padding:1.5rem">
+    <h2 style="color:{% if req.status == 'approved' %}#10b981{% else %}#ef4444{% endif %};margin-bottom:1rem">
+      {% if req.status == 'approved' %}🎉 Coordinator Application Approved!{% else %}❌ Coordinator Application Not Selected{% endif %}
+    </h2>
+    <p>Your coordinator application for <strong>{{ req.event.title }}</strong> has been <strong>{{ req.status }}</strong>.</p>
+    {% if req.status == 'approved' %}<p style="background:rgba(16,185,129,0.1);padding:.75rem;border-radius:8px">Congratulations! You're now a coordinator for this event. The HOD will reach out with next steps.</p>{% endif %}
+  </div>
+  <p style="text-align:center;font-size:.75rem;color:#64748b;margin-top:1rem">{{ college_name }}</p>
+</div>
+

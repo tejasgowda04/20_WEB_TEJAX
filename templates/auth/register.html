@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Register{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-page { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:2rem; }
+  .auth-card {
+    background:var(--bg-card); border:1px solid var(--border); border-radius:20px;
+    padding:2.5rem; max-width:500px; width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3); max-height:90vh; overflow-y:auto;
+  }
+  .auth-title { text-align:center; font-size:1.3rem; font-weight:700; margin-bottom:.3rem; color:var(--text-primary); }
+  .auth-subtitle { text-align:center; font-size:.8rem; color:var(--text-muted); margin-bottom:2rem; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .back-link { display:block; text-align:center; margin-top:1.5rem; color:var(--text-muted); font-size:.8rem; }
+  .back-link a { color:var(--primary); text-decoration:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div style="text-align:center;font-size:2rem;margin-bottom:.5rem">📝</div>
+  <div class="auth-title">Create Your Account</div>
+  <div class="auth-subtitle">Register to join the {{ COLLEGE_NAME }} event platform</div>
+
+  <form id="regForm" onsubmit="return handleRegister(event)">
+    <div class="form-group">
+      <label for="regRole">I am a</label>
+      <select id="regRole" required onchange="toggleRoleFields()">
+        <option value="">Select your role...</option>
+        <option value="hod">HOD (Head of Department)</option>
+        <option value="student">Student</option>
+        <option value="teacher">Teacher / Faculty</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="regName">Full Name</label>
+        <input type="text" id="regName" placeholder="Enter your full name" required/>
+      </div>
+      <div class="form-group">
+        <label for="regPhone">Phone Number</label>
+        <input type="tel" id="regPhone" placeholder="10-digit phone"/>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="regEmail">Email Address</label>
+        <input type="email" id="regEmail" placeholder="Your email" required/>
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Password</label>
+        <input type="password" id="regPassword" placeholder="Min 6 characters" required minlength="6"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="regBranch">Department / Branch</label>
+      <select id="regBranch" required>
+        <option value="">Select branch...</option>
+      </select>
+    </div>
+
+    <!-- Student-specific -->
+    <div id="studentFields" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="regRoll">Roll Number</label>
+          <input type="text" id="regRoll" placeholder="e.g. CS21001"/>
+        </div>
+        <div class="form-group">
+          <label for="regYear">Year</label>
+          <select id="regYear">
+            <option>1st Year</option><option>2nd Year</option>
+            <option>3rd Year</option><option>4th Year</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOD-specific -->
+    <div id="hodFields" style="display:none">
+      <div class="form-group">
+        <label for="regDesig">Designation</label>
+        <input type="text" id="regDesig" placeholder="e.g. Professor & Head"/>
+      </div>
+    </div>
+
+    <!-- Teacher-specific -->
+    <div id="teacherFields" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="regSubject">Subject / Specialization</label>
+          <input type="text" id="regSubject" placeholder="e.g. Data Structures"/>
+        </div>
+        <div class="form-group">
+          <label for="regEmpId">Employee ID</label>
+          <input type="text" id="regEmpId" placeholder="e.g. FAC001"/>
+        </div>
+      </div>
+    </div>
+
+    <div id="regError" class="error-msg"></div>
+    <div id="regSuccess" class="success-msg"></div>
+    <button type="submit" class="btn btn-primary btn-full" id="regBtn">📝 Register</button>
+  </form>
+
+  <div class="back-link">
+    Already have an account? <a href="{% url 'login' %}">Login here</a>
+    &nbsp;|&nbsp; <a href="{% url 'index' %}">← Home</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Populate branches
+  (async () => {
+    try {
+      const data = await API.getBranches();
+      const sel = document.getElementById('regBranch');
+      data.branches.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = b;
+        sel.appendChild(opt);
+      });
+    } catch (e) {
+      // fallback
+      const branches = ['Computer Science','Information Technology','Electronics','Mechanical','Civil','Electrical','MBA','MCA'];
+      const sel = document.getElementById('regBranch');
+      branches.forEach(b => { const o=document.createElement('option'); o.value=o.textContent=b; sel.appendChild(o); });
+    }
+  })();
+
+  function toggleRoleFields() {
+    const role = document.getElementById('regRole').value;
+    document.getElementById('studentFields').style.display = role === 'student' ? '' : 'none';
+    document.getElementById('hodFields').style.display = role === 'hod' ? '' : 'none';
+    document.getElementById('teacherFields').style.display = role === 'teacher' ? '' : 'none';
+  }
+
+  initFirebase(FIREBASE_CONFIG);
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('regError');
+    const sucEl = document.getElementById('regSuccess');
+    const btn = document.getElementById('regBtn');
+    hideMsg(errEl); hideMsg(sucEl);
+
+    const role = document.getElementById('regRole').value;
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const phone = document.getElementById('regPhone').value.trim();
+    const branch = document.getElementById('regBranch').value;
+
+    if (!role || !name || !email || !password || !branch) {
+      showError(errEl, 'Please fill all required fields.');
+      return false;
+    }
+
+    const userData = { role, name, phone, branch };
+    if (role === 'student') {
+      userData.roll_no = document.getElementById('regRoll').value.trim();
+      userData.year = document.getElementById('regYear').value;
+    } else if (role === 'hod') {
+      userData.designation = document.getElementById('regDesig').value.trim();
+    } else if (role === 'teacher') {
+      userData.subject = document.getElementById('regSubject').value.trim();
+      userData.emp_id = document.getElementById('regEmpId').value.trim();
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Registering...';
+
+    try {
+      const result = await firebaseRegister(email, password, userData);
+      showSuccess(sucEl, '✅ ' + (result.message || 'Registered! Pending admin approval.'));
+      btn.textContent = '✅ Registered';
+    } catch (err) {
+      showError(errEl, err.message);
+      btn.disabled = false;
+      btn.textContent = '📝 Register';
+    }
+    return false;
+  }
+</script>
+{% endblock %}
+

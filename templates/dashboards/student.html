@@ -1,0 +1,147 @@
+{% extends "dashboards/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Student Dashboard{% endblock %}
+{% block sidebar_role %}student{% endblock %}
+{% block sidebar_icon %}🎒{% endblock %}
+{% block sidebar_subtitle %}Student Portal{% endblock %}
+{% block avatar_style %}background:linear-gradient(135deg,#10b981,#059669){% endblock %}
+{% block dash_role %}student{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-section">
+  <div class="nav-section-title">Explore</div>
+  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+  <div class="nav-item" data-page="upcoming" onclick="showPage('upcoming',this)"><span class="nav-icon">📅</span><span class="nav-label">Upcoming Events</span></div>
+  <div class="nav-item" data-page="past" onclick="showPage('past',this)"><span class="nav-icon">📜</span><span class="nav-label">Past Events</span></div>
+  <div class="nav-item" data-page="allEvents" onclick="showPage('allEvents',this)"><span class="nav-icon">🌐</span><span class="nav-label">All Events</span></div>
+</div>
+<div class="nav-section">
+  <div class="nav-section-title">My Activity</div>
+  <div class="nav-item" data-page="myApps" onclick="showPage('myApps',this)"><span class="nav-icon">📋</span><span class="nav-label">My Applications</span><span class="nav-badge" id="appBadge" style="display:none">0</span></div>
+  <div class="nav-item" data-page="calendar" onclick="showPage('calendar',this)"><span class="nav-icon">🗓️</span><span class="nav-label">College Calendar</span></div>
+  <div class="nav-item" data-page="notifications" onclick="showPage('notifications',this)"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span><span class="nav-badge" id="notifBadge" style="display:none">0</span></div>
+</div>
+{% endblock %}
+
+{% block pages %}
+<div id="page-dashboard" class="tab-panel active">
+  <div class="page-header"><h1 id="stuGreet">Welcome 👋</h1><p id="stuSubtitle">Discover and participate in college events.</p></div>
+  <div class="card" style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(5,150,105,0.06));border-color:rgba(16,185,129,0.3);margin-bottom:1.5rem">
+    <div class="card-header"><div class="card-title">🌟 Featured Upcoming Events</div><button class="btn btn-sm btn-outline" onclick="showPage('upcoming',null)">View All</button></div>
+    <div id="featuredEvents" class="event-grid"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+    <div class="card"><div class="card-header"><div class="card-title">📊 Quick Stats</div></div><div id="stuStats"></div></div>
+    <div class="card"><div class="card-header"><div class="card-title">🎓 My Coordinator Apps</div></div><div id="dashMyApps"></div></div>
+  </div>
+</div>
+
+<div id="page-upcoming" class="tab-panel">
+  <div class="page-header"><h1>Upcoming Events</h1><p>Approved events. Apply as a coordinator!</p></div>
+  <div class="filter-bar"><input type="text" id="upSearch" placeholder="🔍 Search..." oninput="renderUpcoming()"/><select id="upBranch" onchange="renderUpcoming()"><option value="">All Branches</option></select><select id="upCategory" onchange="renderUpcoming()"><option value="">All Categories</option><option>Technical</option><option>Cultural</option><option>Sports</option><option>Seminar</option><option>Workshop</option></select></div>
+  <div class="event-grid" id="upcomingGrid"></div>
+</div>
+
+<div id="page-past" class="tab-panel">
+  <div class="page-header"><h1>Past Events</h1></div>
+  <div class="filter-bar"><input type="text" id="pastSearch" placeholder="🔍 Search..." oninput="renderPast()"/><select id="pastBranch" onchange="renderPast()"><option value="">All Branches</option></select></div>
+  <div class="event-grid" id="pastGrid"></div>
+</div>
+
+<div id="page-allEvents" class="tab-panel">
+  <div class="page-header"><h1>All College Events</h1></div>
+  <div class="filter-bar"><input type="text" id="allSearch" placeholder="🔍 Search..." oninput="renderAll()"/><select id="allBranch" onchange="renderAll()"><option value="">All Branches</option></select><select id="allTime" onchange="renderAll()"><option value="">All Time</option><option value="upcoming">Upcoming</option><option value="past">Past</option></select></div>
+  <div class="table-container"><table><thead><tr><th>Event</th><th>Branch</th><th>Date</th><th>Venue</th><th>Category</th><th>Action</th></tr></thead><tbody id="allEvBody"></tbody></table></div>
+</div>
+
+<div id="page-myApps" class="tab-panel">
+  <div class="page-header"><h1>My Coordinator Applications</h1></div>
+  <div id="myAppsList"></div>
+</div>
+
+<div id="page-calendar" class="tab-panel">
+  <div class="page-header"><h1>🗓️ College Calendar</h1></div>
+  <div id="calList"></div>
+</div>
+
+<div id="page-notifications" class="tab-panel">
+  <div class="page-header"><h1>Notifications</h1></div>
+  <div class="card" style="padding:0"><div id="notifList"></div></div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="coordModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🎓 Apply as Coordinator</div><button class="modal-close" onclick="document.getElementById('coordModal').classList.remove('open')">✕</button></div>
+    <input type="hidden" id="coordEventId"/>
+    <div class="form-group"><label>Event</label><input type="text" id="coordEventName" readonly style="opacity:.7"/></div>
+    <div class="form-group"><label for="coordMessage">Why do you want to be a coordinator?</label><textarea id="coordMessage" rows="4" placeholder="Share your motivation..."></textarea></div>
+    <div id="coordError" class="error-msg"></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="document.getElementById('coordModal').classList.remove('open')">Cancel</button><button class="btn btn-success" onclick="submitCoordApp()">🚀 Submit</button></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block dashboard_js %}
+<script>
+const pageTitles={dashboard:'Home',upcoming:'Upcoming Events',past:'Past Events',allEvents:'All Events',myApps:'My Applications',calendar:'College Calendar',notifications:'Notifications'};
+const catColors={'Technical':'#667eea','Cultural':'#f59e0b','Sports':'#10b981','Seminar':'#8b5cf6','Workshop':'#3b82f6','Other':'#94a3b8'};
+const calTypeColors={'holiday':'#f59e0b','exam':'#ef4444','semester_start':'#10b981','semester_end':'#3b82f6','vacation':'#8b5cf6','event':'#667eea','other':'#94a3b8'};
+let appliedEvents=new Set();
+
+async function initDashboard(){
+  document.getElementById('stuGreet').textContent=`Welcome, ${currentUser.name.split(' ')[0]} 👋`;
+  document.getElementById('stuSubtitle').textContent=`${currentUser.branch} · ${currentUser.extra_data.year||'Student'} · Roll: ${currentUser.extra_data.roll_no||'—'}`;
+  const bd=await API.getBranches();
+  ['upBranch','pastBranch','allBranch'].forEach(id=>{const s=document.getElementById(id);bd.branches.forEach(b=>{const o=document.createElement('option');o.value=o.textContent=b;s.appendChild(o);});});
+  // Load applied events
+  const cd=await API.getCoordinatorRequests();
+  cd.requests.forEach(r=>appliedEvents.add(r.event_id));
+  renderDashboard();
+}
+
+function renderPage(name){const fns={dashboard:renderDashboard,upcoming:renderUpcoming,past:renderPast,allEvents:renderAll,myApps:renderMyApps,calendar:renderCalendar,notifications:renderNotifs};if(fns[name])fns[name]();}
+
+function buildCard(e,showApply=false){
+  const isPast=e.is_past;const applied=appliedEvents.has(e.id);
+  return `<div class="event-card fade-in"><div class="event-card-accent" style="background:${catColors[e.category]||'#667eea'}"></div><div class="event-card-header"><div class="event-card-title">${e.title}</div><span class="badge ${isPast?'badge-past':'badge-upcoming'}">${isPast?'Past':'Upcoming'}</span></div><div class="event-meta"><div class="event-meta-item"><span class="event-meta-icon">🏛️</span>${e.branch}</div><div class="event-meta-item"><span class="event-meta-icon">📅</span>${fmtDate(e.date)}</div><div class="event-meta-item"><span class="event-meta-icon">📍</span>${e.venue_name}</div><div class="event-meta-item"><span class="event-meta-icon">👤</span>${e.organizer}</div></div><p style="font-size:.8rem;color:var(--text-muted);line-height:1.5;margin-bottom:1rem">${e.description.slice(0,120)}...</p><div class="event-card-footer"><span class="badge" style="background:${catColors[e.category]||'#667eea'}22;color:${catColors[e.category]||'#667eea'}">${e.category}</span>${showApply&&!isPast?(applied?`<span class="badge badge-approved">✅ Applied</span>`:`<button class="btn btn-sm btn-success" onclick="openCoordModal('${e.id}','${e.title.replace(/'/g,"\\'")}')">🎓 Apply</button>`):''}</div></div>`;
+}
+
+async function renderDashboard(){
+  const data=await API.getEvents({status:'approved'});
+  const today=new Date().toISOString().split('T')[0];
+  const upcoming=data.events.filter(e=>e.date>=today);
+  const past=data.events.filter(e=>e.date<today);
+  const myBranch=data.events.filter(e=>e.branch===currentUser.branch);
+  const cData=await API.getCoordinatorRequests();
+
+  document.getElementById('stuStats').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">${[{icon:'📅',val:upcoming.length,label:'Upcoming'},{icon:'📜',val:past.length,label:'Past'},{icon:'🏛️',val:myBranch.length,label:'My Branch'},{icon:'🎓',val:cData.requests.length,label:'Applications'}].map(s=>`<div style="background:rgba(16,185,129,0.08);padding:1rem;border-radius:10px;border:1px solid rgba(16,185,129,0.2);text-align:center"><div style="font-size:1.5rem">${s.icon}</div><div style="font-size:1.4rem;font-weight:800;color:#34d399">${s.val}</div><div style="font-size:.72rem;color:var(--text-muted)">${s.label}</div></div>`).join('')}</div>`;
+
+  const fe=document.getElementById('featuredEvents');
+  fe.innerHTML=upcoming.length?upcoming.slice(0,3).map(e=>buildCard(e,true)).join(''):'<div class="empty-state"><div class="empty-icon">📭</div><p>No upcoming events.</p></div>';
+
+  const da=document.getElementById('dashMyApps');
+  da.innerHTML=cData.requests.length?cData.requests.slice(0,4).map(a=>`<div style="display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:.85rem">${a.event_title}</div><div style="font-size:.72rem;color:var(--text-muted)">${fmtDate(a.created_at)}</div></div>${statusBadge(a.status)}</div>`).join(''):'<div class="empty-state"><div class="empty-icon">🎓</div><p>No applications yet.</p></div>';
+
+  const ab=document.getElementById('appBadge');ab.textContent=cData.requests.length;ab.style.display=cData.requests.length?'':'none';
+  updateNotifBadge();
+}
+
+async function renderUpcoming(){const s=document.getElementById('upSearch').value;const b=document.getElementById('upBranch').value;const c=document.getElementById('upCategory').value;const p={status:'approved',time:'upcoming'};if(s)p.search=s;if(b)p.branch=b;if(c)p.category=c;const d=await API.getEvents(p);document.getElementById('upcomingGrid').innerHTML=d.events.length?d.events.map(e=>buildCard(e,true)).join(''):'<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><h3>No upcoming events</h3></div>';}
+async function renderPast(){const s=document.getElementById('pastSearch').value;const b=document.getElementById('pastBranch').value;const p={status:'approved',time:'past'};if(s)p.search=s;if(b)p.branch=b;const d=await API.getEvents(p);document.getElementById('pastGrid').innerHTML=d.events.length?d.events.map(e=>buildCard(e,false)).join(''):'<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📜</div><h3>No past events</h3></div>';}
+async function renderAll(){const s=document.getElementById('allSearch').value;const b=document.getElementById('allBranch').value;const t=document.getElementById('allTime').value;const p={status:'approved'};if(s)p.search=s;if(b)p.branch=b;if(t)p.time=t;const d=await API.getEvents(p);document.getElementById('allEvBody').innerHTML=d.events.map(e=>`<tr><td style="font-weight:600">${e.title}</td><td>${e.branch}</td><td>${fmtDate(e.date)}</td><td>${e.venue_name}</td><td><span class="badge" style="background:${catColors[e.category]||'#94a3b8'}22;color:${catColors[e.category]||'#94a3b8'}">${e.category}</span></td><td>${e.is_upcoming&&!appliedEvents.has(e.id)?`<button class="btn btn-sm btn-success" onclick="openCoordModal('${e.id}','${e.title.replace(/'/g,"\\'")}')">🎓</button>`:appliedEvents.has(e.id)?'<span class="badge badge-approved">✅</span>':''}</td></tr>`).join('');}
+
+async function renderMyApps(){const d=await API.getCoordinatorRequests();const el=document.getElementById('myAppsList');if(!d.requests.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🎓</div><h3>No applications</h3><button class="btn btn-primary" onclick="showPage(\'upcoming\',null)" style="margin-top:1rem">Browse Events</button></div></div>';return;}el.innerHTML=d.requests.map(a=>`<div class="card" style="margin-bottom:1rem"><div style="display:flex;justify-content:space-between;flex-wrap:wrap"><div><div style="font-weight:700">${a.event_title}</div><div style="font-size:.82rem;color:var(--text-muted)">Applied ${fmtDate(a.created_at)}</div>${a.message?`<div class="alert alert-info" style="margin-top:.5rem;font-size:.8rem">💬 ${a.message}</div>`:''}</div>${statusBadge(a.status)}</div></div>`).join('');}
+
+function openCoordModal(id,title){document.getElementById('coordEventId').value=id;document.getElementById('coordEventName').value=title;document.getElementById('coordMessage').value='';document.getElementById('coordModal').classList.add('open');}
+async function submitCoordApp(){const id=document.getElementById('coordEventId').value;const msg=document.getElementById('coordMessage').value;try{await API.applyCoordinator(id,msg);appliedEvents.add(id);document.getElementById('coordModal').classList.remove('open');alert('🎉 Application submitted!');renderPage(document.querySelector('.nav-item.active')?.dataset.page||'dashboard');}catch(e){showError(document.getElementById('coordError'),e.message);}}
+
+async function renderCalendar(){const d=await API.getCalendar(new Date().getFullYear());document.getElementById('calList').innerHTML=d.entries.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`<div style="display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;border-left:4px solid ${calTypeColors[e.type]||'#94a3b8'}"><div style="min-width:50px;text-align:center"><div style="font-size:1.2rem;font-weight:800">${new Date(e.date).getDate()}</div><div style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase">${new Date(e.date).toLocaleString('en',{month:'short'})}</div></div><div><div style="font-weight:600;font-size:.9rem">${e.title}</div><div style="font-size:.72rem;color:var(--text-muted)">${e.type_display}${e.end_date?' · Until '+fmtDate(e.end_date):''}${e.is_recurring?' · 🔁 Yearly':''}</div></div></div>`).join('');}
+
+async function renderNotifs(){const d=await API.getNotifications();const el=document.getElementById('notifList');if(!d.notifications.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications.</p></div>';return;}el.innerHTML=d.notifications.map(n=>`<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);cursor:pointer" onclick="markRead('${n.id}')"><div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${n.is_read?'transparent':'#10b981'}"></div><div><div style="font-size:.85rem;line-height:1.5;${n.is_read?'color:var(--text-muted)':''}">${n.message}</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem">${new Date(n.created_at).toLocaleString('en-IN')}</div></div></div>`).join('');updateNotifBadge();}
+async function markRead(id){await API.markRead(id);renderNotifs();}
+</script>
+{% endblock %}
+

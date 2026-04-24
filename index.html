@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduEvent – College Event & Venue Management</title>
+  <meta name="description" content="Unified College Event & Venue Management System – P-04"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
+  <style>
+    body.entry-page { background: #ffffff !important; }
+    .particles .particle { opacity: 0.15 !important; }
+    .welcome-back-link {
+      position: fixed; top: 16px; left: 20px; z-index: 200;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #f3f4f6; color: #374151;
+      border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 8px 16px; font-size: 13px; font-weight: 600;
+      text-decoration: none; transition: background .2s, transform .15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .welcome-back-link:hover { background: #e5e7eb; transform: translateX(-2px); }
+  </style>
+</head>
+<body class="entry-page">
+  <a href="welcome.html" class="welcome-back-link">← College Welcome</a>
+  <div class="particles" id="particles"></div>
+
+  <div class="entry-container">
+    <div class="entry-logo">
+      <div class="logo-icon">🎓</div>
+      <h1>EduEvent</h1>
+      <p>Unified College Event &amp; Venue Management System</p>
+    </div>
+
+    <div class="role-selector-card">
+      <h2>Welcome! Select Your Role</h2>
+      <p class="role-subtitle">Choose your portal to continue</p>
+
+      <div class="role-grid">
+        <a href="pages/login.html?role=admin" class="role-card role-admin" id="role-admin">
+          <div class="role-icon">🛡️</div>
+          <h3>Admin</h3>
+          <p>Full system access &amp; event approval</p>
+          <span class="role-badge">Administrator</span>
+        </a>
+        <a href="pages/login.html?role=hod" class="role-card role-hod" id="role-hod">
+          <div class="role-icon">🏛️</div>
+          <h3>HOD</h3>
+          <p>Submit event &amp; venue booking requests</p>
+          <span class="role-badge">Department Head</span>
+        </a>
+        <a href="pages/login.html?role=student" class="role-card role-student" id="role-student">
+          <div class="role-icon">🎒</div>
+          <h3>Student</h3>
+          <p>View events &amp; register as coordinator</p>
+          <span class="role-badge">Student</span>
+        </a>
+        <a href="pages/login.html?role=teacher" class="role-card role-teacher" id="role-teacher">
+          <div class="role-icon">📚</div>
+          <h3>Teacher</h3>
+          <p>View branch events &amp; organizer info</p>
+          <span class="role-badge">Faculty</span>
+        </a>
+      </div>
+
+      <div class="entry-footer">
+        <p>New member? <a href="pages/register.html" class="link-highlight">Register here</a></p>
+      </div>
+    </div>
+
+    <div class="college-info">
+      <span>P-04 · Conflict-Free Scheduling · Role-Based Access</span>
+    </div>
+  </div>
+
+  <script src="/static/js/particles.js"></script>
+</body>
+</html>
+

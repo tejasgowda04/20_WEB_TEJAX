@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ event.title }}{% endblock %}
+{% block description %}{{ event.public_description|default:event.description|truncatewords:30 }}{% endblock %}
+{% block body_class %}public-detail{% endblock %}
+
+{% block extra_css %}
+<style>
+  .public-detail { padding:0; }
+  .pd-hero {
+    background:linear-gradient(135deg,rgba(102,126,234,0.15),rgba(139,92,246,0.1));
+    padding:3rem 2rem 2rem; border-bottom:1px solid var(--border); position:relative;
+  }
+  .pd-back { color:var(--text-muted); font-size:.85rem; text-decoration:none; margin-bottom:1rem; display:inline-block; }
+  .pd-back:hover { color:var(--text-primary); }
+  .pd-title { font-size:2rem; font-weight:800; color:var(--text-primary); margin-bottom:.75rem; }
+  .pd-badges { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
+  .pd-badge {
+    display:inline-flex; align-items:center; gap:.3rem; padding:.3rem .8rem;
+    border-radius:20px; font-size:.75rem; font-weight:600;
+  }
+  .pd-content { max-width:800px; margin:2rem auto; padding:0 2rem; }
+  .pd-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2rem; }
+  .pd-info-card {
+    background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+    padding:1rem; display:flex; align-items:center; gap:.75rem;
+  }
+  .pd-info-icon { font-size:1.5rem; }
+  .pd-info-label { font-size:.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; }
+  .pd-info-value { font-size:.95rem; font-weight:600; color:var(--text-primary); }
+  .pd-desc {
+    background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+    padding:1.5rem; margin-bottom:2rem;
+  }
+  .pd-desc h3 { margin-bottom:.75rem; font-size:1rem; }
+  .pd-desc p { color:var(--text-secondary); line-height:1.8; font-size:.9rem; }
+  .pd-share-section { text-align:center; padding:2rem; }
+  .pd-share-title { font-size:1rem; font-weight:600; margin-bottom:1rem; color:var(--text-primary); }
+  .pd-share-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+  .pd-share-btn {
+    display:inline-flex; align-items:center; gap:.5rem;
+    padding:.65rem 1.5rem; border-radius:12px; font-size:.85rem; font-weight:600;
+    text-decoration:none; border:1px solid; transition:all .3s ease; cursor:pointer;
+  }
+  .pd-whatsapp { background:rgba(37,211,102,0.15); color:#25d366; border-color:rgba(37,211,102,0.3); }
+  .pd-whatsapp:hover { background:rgba(37,211,102,0.25); }
+  .pd-copy { background:rgba(102,126,234,0.15); color:#667eea; border-color:rgba(102,126,234,0.3); }
+  .pd-copy:hover { background:rgba(102,126,234,0.25); }
+  .pd-reg-link {
+    display:inline-flex; align-items:center; gap:.5rem; margin-top:1.5rem;
+    padding:.65rem 1.5rem; border-radius:12px; font-size:.85rem; font-weight:600;
+    text-decoration:none; background:rgba(16,185,129,0.15); color:#10b981;
+    border:1px solid rgba(16,185,129,0.3); transition:all .3s ease;
+  }
+  .pd-reg-link:hover { background:rgba(16,185,129,0.25); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pd-hero">
+  <a href="{% url 'public_wall' %}" class="pd-back">← Back to Public Events</a>
+  <div class="pd-title">{{ event.title }}</div>
+  <div class="pd-badges">
+    <span class="pd-badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">
+      🌐 Open Event
+    </span>
+    <span class="pd-badge" style="background:rgba(102,126,234,0.15);color:#667eea;border:1px solid rgba(102,126,234,0.3)">
+      {{ event.category }}
+    </span>
+    {% if event.is_upcoming %}
+    <span class="pd-badge" style="background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)">
+      📅 Upcoming
+    </span>
+    {% else %}
+    <span class="pd-badge" style="background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.3)">
+      📜 Past Event
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="pd-content">
+  <div class="pd-info-grid">
+    <div class="pd-info-card">
+      <div class="pd-info-icon">📅</div>
+      <div>
+        <div class="pd-info-label">Date</div>
+        <div class="pd-info-value">{{ event.date|date:"d M Y" }}{% if event.end_date and event.end_date != event.date %} – {{ event.end_date|date:"d M Y" }}{% endif %}</div>
+      </div>
+    </div>
+    <div class="pd-info-card">
+      <div class="pd-info-icon">📍</div>
+      <div>
+        <div class="pd-info-label">Venue</div>
+        <div class="pd-info-value">{{ event.venue.name }}</div>
+      </div>
+    </div>
+    <div class="pd-info-card">
+      <div class="pd-info-icon">🏛️</div>
+      <div>
+        <div class="pd-info-label">Organized By</div>
+        <div class="pd-info-value">{{ event.branch }}</div>
+      </div>
+    </div>
+    <div class="pd-info-card">
+      <div class="pd-info-icon">👤</div>
+      <div>
+        <div class="pd-info-label">Organizer</div>
+        <div class="pd-info-value">{{ event.organizer }}</div>
+      </div>
+    </div>
+    {% if event.expected_attendees %}
+    <div class="pd-info-card">
+      <div class="pd-info-icon">👥</div>
+      <div>
+        <div class="pd-info-label">Expected Attendees</div>
+        <div class="pd-info-value">~{{ event.expected_attendees }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="pd-desc">
+    <h3>About This Event</h3>
+    <p>{{ event.public_description|default:event.description|linebreaksbr }}</p>
+  </div>
+
+  {% if event.registration_link %}
+  <div style="text-align:center;margin-bottom:2rem">
+    <a href="{{ event.registration_link }}" target="_blank" class="pd-reg-link">📝 Register for this Event</a>
+  </div>
+  {% endif %}
+
+  <div class="pd-share-section">
+    <div class="pd-share-title">📤 Share This Event</div>
+    <div class="pd-share-btns">
+      <a href="{{ whatsapp_link }}" target="_blank" class="pd-share-btn pd-whatsapp">📱 Share on WhatsApp</a>
+      <button class="pd-share-btn pd-copy" onclick="copyLink()">📋 Copy Link</button>
+    </div>
+    <input type="hidden" id="shareUrl" value="{{ share_url }}"/>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function copyLink() {
+    const url = document.getElementById('shareUrl').value;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('🔗 Link copied to clipboard!');
+    }).catch(() => {
+      prompt('Copy this link:', url);
+    });
+  }
+</script>
+{% endblock %}
+

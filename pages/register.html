@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register – EduEvent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
+</head>
+<body class="auth-page">
+  <div class="auth-left">
+    <div class="auth-left-content">
+      <div class="auth-left-icon">✨</div>
+      <h1>Join EduEvent</h1>
+      <p>Register as a HOD, Student, or Teacher to access the college event management system.</p>
+      <br/>
+      <div style="background:rgba(255,255,255,0.07);padding:1rem;border-radius:12px;margin-top:1rem;font-size:.8rem;color:#94a3b8;line-height:1.6;">
+        <strong style="color:#f1f5f9;">📌 Note:</strong><br/>
+        Your registration will be reviewed by the Admin before you can log in. You'll be approved within 24 hours.
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-right" style="overflow-y:auto;align-items:flex-start;padding-top:2rem;">
+    <div class="auth-form-box fade-in" style="margin:auto;">
+      <h2>Create Account</h2>
+      <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1.5rem;">Fill in your details to register</p>
+
+      <div id="errorMsg"   class="error-msg"></div>
+      <div id="successMsg" class="success-msg"></div>
+
+      <!-- Role Selector within Register -->
+      <div class="form-group">
+        <label for="regRole">I am a</label>
+        <select id="regRole">
+          <option value="student">Student</option>
+          <option value="hod">HOD (Head of Department)</option>
+          <option value="teacher">Teacher / Faculty</option>
+        </select>
+      </div>
+
+      <form id="registerForm" autocomplete="off">
+        <!-- Common Fields -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="regName">Full Name *</label>
+            <input type="text" id="regName" placeholder="Dr. Jane Doe" required/>
+          </div>
+          <div class="form-group">
+            <label for="regEmail">Email Address *</label>
+            <input type="email" id="regEmail" placeholder="you@college.edu" required/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="regPhone">Phone Number *</label>
+            <input type="tel" id="regPhone" placeholder="9XXXXXXXXX" required/>
+          </div>
+          <div class="form-group">
+            <label for="regPassword">Password *</label>
+            <input type="password" id="regPassword" placeholder="Min 6 characters" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="regBranch">Department / Branch *</label>
+          <select id="regBranch" required>
+            <option value="">-- Select Branch --</option>
+          </select>
+        </div>
+
+        <!-- Student-only fields -->
+        <div id="studentFields">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="regRollNo">Roll Number *</label>
+              <input type="text" id="regRollNo" placeholder="CS21001"/>
+            </div>
+            <div class="form-group">
+              <label for="regYear">Year of Study *</label>
+              <select id="regYear">
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- HOD-only fields -->
+        <div id="hodFields" style="display:none">
+          <div class="form-group">
+            <label for="regDept">Department Full Name *</label>
+            <input type="text" id="regDept" placeholder="e.g., Department of Computer Science"/>
+          </div>
+          <div class="form-group">
+            <label for="regDesig">Designation *</label>
+            <input type="text" id="regDesig" placeholder="e.g., Professor & Head"/>
+          </div>
+        </div>
+
+        <!-- Teacher-only fields -->
+        <div id="teacherFields" style="display:none">
+          <div class="form-group">
+            <label for="regSubject">Primary Subject *</label>
+            <input type="text" id="regSubject" placeholder="e.g., Data Structures"/>
+          </div>
+          <div class="form-group">
+            <label for="regEmpId">Employee ID *</label>
+            <input type="text" id="regEmpId" placeholder="e.g., EMP2024001"/>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="regBtn">
+          <span id="regBtnText">Create Account</span>
+        </button>
+      </form>
+
+      <div class="auth-links">
+        <p>Already have an account? <a href="login.html" id="loginLink">Sign in</a></p>
+        <p style="margin-top:.5rem"><a href="../index.html">← Back to role selection</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/static/js/db.js?v=2"></script>
+  <script src="/static/js/api.js?v=2"></script>
+  <script src="/static/js/firebase_auth.js?v=2"></script>
+{% verbatim %}
+  <script>
+    // Populate branches
+    const branchSel = document.getElementById('regBranch');
+    DB.BRANCHES.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = b;
+      branchSel.appendChild(opt);
+    });
+
+    const roleSel = document.getElementById('regRole');
+
+    function updateFields() {
+      const r = roleSel.value;
+      document.getElementById('studentFields').style.display = r === 'student' ? '' : 'none';
+      document.getElementById('hodFields').style.display     = r === 'hod'     ? '' : 'none';
+      document.getElementById('teacherFields').style.display = r === 'teacher' ? '' : 'none';
+      document.getElementById('loginLink').href = `login.html?role=${r}`;
+    }
+    roleSel.addEventListener('change', updateFields);
+    updateFields();
+
+    document.getElementById('registerForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      const role    = roleSel.value;
+      const name    = document.getElementById('regName').value.trim();
+      const email   = document.getElementById('regEmail').value.trim();
+      const phone   = document.getElementById('regPhone').value.trim();
+      const password= document.getElementById('regPassword').value;
+      const branch  = document.getElementById('regBranch').value;
+
+      if (!branch) { showError('Please select your branch.'); return; }
+      if (password.length < 6) { showError('Password must be at least 6 characters.'); return; }
+
+      const data = { name, email, phone, password, branch };
+
+      if (role === 'student') {
+        data.rollNo = document.getElementById('regRollNo').value.trim();
+        data.year   = document.getElementById('regYear').value;
+        if (!data.rollNo) { showError('Please enter your roll number.'); return; }
+      }
+      if (role === 'hod') {
+        data.department  = document.getElementById('regDept').value.trim() || branch;
+        data.designation = document.getElementById('regDesig').value.trim();
+        if (!data.designation) { showError('Please enter your designation.'); return; }
+      }
+      if (role === 'teacher') {
+        data.subject = document.getElementById('regSubject').value.trim();
+        data.empId   = document.getElementById('regEmpId').value.trim();
+        if (!data.subject) { showError('Please enter your primary subject.'); return; }
+      }
+
+      const btn = document.getElementById('regBtn');
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled  = true;
+      hideMessages();
+
+      try {
+        const result = await firebaseRegister(email, password, {role, ...data});
+        if (result && result.success) {
+          document.getElementById('successMsg').textContent = '🎉 Registration successful! Your account is pending admin approval. You will be notified once approved.';
+          document.getElementById('successMsg').classList.add('show');
+          document.getElementById('registerForm').reset();
+          updateFields();
+          setTimeout(() => { window.location.href = `login.html?role=${role}`; }, 3000);
+        } else {
+          throw new Error(result.error || 'Registration failed.');
+        }
+      } catch(err) {
+        console.error('Registration error:', err);
+        showError(err.message || 'Registration failed. Please try again.');
+      } finally {
+        btn.innerHTML = '<span id="regBtnText">Create Account</span>';
+        btn.disabled  = false;
+      }
+    });
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg; el.classList.add('show');
+    }
+    function hideMessages() {
+      document.getElementById('errorMsg').classList.remove('show');
+      document.getElementById('successMsg').classList.remove('show');
+    }
+  </script>
+{% endverbatim %}
+</body>
+</html>
+

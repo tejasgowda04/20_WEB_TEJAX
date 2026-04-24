@@ -1,0 +1,16 @@
+<div style="font-family:Inter,Arial,sans-serif;background:#0a0d1a;color:#e2e8f0;padding:2rem;max-width:600px;margin:0 auto">
+  <div style="text-align:center;margin-bottom:1.5rem"><span style="font-size:1.5rem;font-weight:800">🎓 EduEvent</span></div>
+  <div style="background:#0f1629;border:1px solid #1e293b;border-radius:12px;padding:1.5rem">
+    <h2 style="color:#10b981;margin-bottom:1rem">🎓 New Coordinator Application</h2>
+    <p>A student has applied to coordinate your event:</p>
+    <div style="background:#1e293b;padding:1rem;border-radius:8px;margin:1rem 0">
+      <strong>{{ req.student.name }}</strong> ({{ req.student.branch }})<br>
+      📧 {{ req.student.email }}<br>
+      Event: <strong>{{ req.event.title }}</strong>
+    </div>
+    {% if req.message %}<p style="background:rgba(16,185,129,0.1);padding:.75rem;border-radius:8px">💬 "{{ req.message }}"</p>{% endif %}
+    <a href="{{ site_url }}/dashboard/hod/#coordinators" style="display:inline-block;background:#10b981;color:white;padding:.5rem 1.5rem;border-radius:8px;text-decoration:none">Review →</a>
+  </div>
+  <p style="text-align:center;font-size:.75rem;color:#64748b;margin-top:1rem">{{ college_name }}</p>
+</div>
+

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Public Events{% endblock %}
+{% block description %}Open college events - no login required{% endblock %}
+{% block body_class %}public-wall{% endblock %}
+
+{% block extra_css %}
+<style>
+  .public-wall { padding:0; }
+  .pw-header {
+    background:linear-gradient(135deg,rgba(102,126,234,0.15),rgba(139,92,246,0.1));
+    padding:3rem 2rem; text-align:center; border-bottom:1px solid var(--border);
+  }
+  .pw-title { font-size:2.2rem; font-weight:800; margin-bottom:.5rem;
+    background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .pw-subtitle { color:var(--text-muted); font-size:.95rem; }
+  .pw-info { display:inline-flex; align-items:center; gap:.5rem; margin-top:1rem;
+    background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3);
+    padding:.4rem 1rem; border-radius:20px; font-size:.8rem; color:#10b981; }
+  .pw-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1.5rem;
+    padding:2rem; max-width:1200px; margin:0 auto; }
+  .pw-card {
+    background:var(--bg-card); border:1px solid var(--border); border-radius:16px;
+    overflow:hidden; transition:all .3s ease;
+  }
+  .pw-card:hover { transform:translateY(-3px); border-color:var(--primary); box-shadow:0 12px 40px rgba(102,126,234,0.15); }
+  .pw-card-accent { height:4px; }
+  .pw-card-body { padding:1.5rem; }
+  .pw-card-title { font-size:1.1rem; font-weight:700; margin-bottom:.75rem; color:var(--text-primary); }
+  .pw-meta { display:flex; flex-direction:column; gap:.4rem; font-size:.82rem; color:var(--text-muted); margin-bottom:1rem; }
+  .pw-meta-row { display:flex; align-items:center; gap:.5rem; }
+  .pw-desc { font-size:.82rem; color:var(--text-secondary); line-height:1.7; margin-bottom:1rem; }
+  .pw-actions { display:flex; gap:.75rem; flex-wrap:wrap; }
+  .pw-btn {
+    display:inline-flex; align-items:center; gap:.4rem; padding:.5rem 1rem;
+    border-radius:10px; font-size:.8rem; font-weight:600; text-decoration:none;
+    transition:all .3s ease; border:1px solid; cursor:pointer;
+  }
+  .pw-btn-view { background:rgba(102,126,234,0.1); color:#667eea; border-color:rgba(102,126,234,0.3); }
+  .pw-btn-view:hover { background:rgba(102,126,234,0.2); }
+  .pw-btn-whatsapp { background:rgba(37,211,102,0.1); color:#25d366; border-color:rgba(37,211,102,0.3); }
+  .pw-btn-whatsapp:hover { background:rgba(37,211,102,0.2); }
+  .pw-empty { grid-column:1/-1; text-align:center; padding:4rem 2rem; color:var(--text-muted); }
+  .pw-back { display:inline-flex; align-items:center; gap:.5rem; position:absolute; top:1.5rem; left:1.5rem;
+    color:var(--text-muted); font-size:.85rem; text-decoration:none; }
+  .pw-back:hover { color:var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pw-header" style="position:relative">
+  <a href="{% url 'index' %}" class="pw-back">← Back to Login</a>
+  <div class="pw-title">🌐 Public Events Wall</div>
+  <div class="pw-subtitle">Open events from {{ COLLEGE_NAME }} – No login required</div>
+  <div class="pw-info">🔓 Share these events with anyone – even students from other colleges!</div>
+</div>
+
+<div class="pw-grid">
+  {% if events %}
+    {% for event in events %}
+    <div class="pw-card">
+      <div class="pw-card-accent" style="background:{% if event.category == 'Technical' %}#667eea{% elif event.category == 'Cultural' %}#f59e0b{% elif event.category == 'Sports' %}#10b981{% elif event.category == 'Seminar' %}#8b5cf6{% elif event.category == 'Workshop' %}#3b82f6{% else %}#94a3b8{% endif %}"></div>
+      <div class="pw-card-body">
+        <div class="pw-card-title">{{ event.title }}</div>
+        <div class="pw-meta">
+          <div class="pw-meta-row">🏛️ {{ event.branch }}</div>
+          <div class="pw-meta-row">📅 {{ event.date|date:"d M Y" }}{% if event.end_date and event.end_date != event.date %} – {{ event.end_date|date:"d M Y" }}{% endif %}</div>
+          <div class="pw-meta-row">📍 {{ event.venue.name }}</div>
+          <div class="pw-meta-row">👤 {{ event.organizer }}</div>
+          {% if event.expected_attendees %}<div class="pw-meta-row">👥 ~{{ event.expected_attendees }} expected attendees</div>{% endif %}
+        </div>
+        <div class="pw-desc">{{ event.public_description|default:event.description|truncatewords:40 }}</div>
+        <div class="pw-actions">
+          <a href="{% url 'public_event_detail' event.public_slug %}" class="pw-btn pw-btn-view">👁 View Details</a>
+          <a href="https://wa.me/?text=🎓 {{ event.title }}%0A📅 {{ event.date|date:'d M Y' }}%0A📍 {{ event.venue.name }}%0A🔗 {{ SITE_URL }}/public/event/{{ event.public_slug }}/"
+             target="_blank" class="pw-btn pw-btn-whatsapp">
+            📱 Share on WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="pw-empty">
+      <div style="font-size:4rem;margin-bottom:1rem">🌐</div>
+      <h2 style="color:var(--text-primary);margin-bottom:.5rem">No Public Events Yet</h2>
+      <p>Check back later for open events from {{ COLLEGE_NAME }}.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

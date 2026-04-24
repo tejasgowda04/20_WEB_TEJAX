@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}dashboard{% endblock %}
+
+{% block content %}
+<!-- Sidebar -->
+<aside class="sidebar sidebar-{% block sidebar_role %}{% endblock %}" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">{% block sidebar_icon %}🎓{% endblock %}</div>
+    <div>
+      <div class="sidebar-title">EduEvent</div>
+      <div class="sidebar-subtitle">{% block sidebar_subtitle %}Portal{% endblock %}</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    {% block sidebar_nav %}{% endblock %}
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-avatar" id="userAvatar" style="{% block avatar_style %}{% endblock %}">?</div>
+    <div class="user-info">
+      <div class="user-name" id="userName">Loading...</div>
+      <div class="user-role" id="userBranch">—</div>
+    </div>
+    <button onclick="firebaseLogout()" class="btn btn-sm btn-outline" style="padding:.3rem .6rem" title="Logout">🚪</button>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+  <div class="topbar">
+    <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title" id="pageTitle">Dashboard</div>
+    <div class="topbar-actions">
+      <a href="{% url 'calendar' %}" class="notification-btn" title="College Calendar" style="text-decoration:none">📅</a>
+      <button class="notification-btn" onclick="showPage('notifications',null)" id="notifBtn">
+        🔔<span class="notif-dot" id="topNotifDot" style="display:none"></span>
+      </button>
+      <span style="color:var(--text-muted);font-size:.8rem" id="topbarDate"></span>
+    </div>
+  </div>
+  <div class="page-content">
+    {% block pages %}{% endblock %}
+  </div>
+</div>
+
+{% block modals %}{% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Common Dashboard JS ─────────────────────────────────────────
+  const ROLE = '{% block dash_role %}{% endblock %}';
+  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+
+  // Load current user
+  let currentUser = null;
+  (async function loadUser() {
+    try {
+      const data = await API.me();
+      currentUser = data.user;
+      document.getElementById('userAvatar').textContent = currentUser.initials;
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('userBranch').textContent = currentUser.branch || currentUser.role;
+      // Redirect if wrong role
+      if (currentUser.role !== ROLE) {
+        window.location.href = '/dashboard/' + currentUser.role + '/';
+        return;
+      }
+      // Call page init if it exists
+      if (typeof initDashboard === 'function') initDashboard();
+    } catch (e) {
+      window.location.href = '/auth/login/?role=' + ROLE;
+    }
+  })();
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    document.getElementById('mainContent').classList.toggle('expanded');
+  }
+
+  function showPage(name, navEl) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const page = document.getElementById('page-' + name);
+    if (page) page.classList.add('active');
+    if (navEl) navEl.classList.add('active');
+    else { const el = document.querySelector(`[data-page="${name}"]`); if(el) el.classList.add('active'); }
+    document.getElementById('pageTitle').textContent = pageTitles[name] || name;
+    if (typeof renderPage === 'function') renderPage(name);
+  }
+
+  async function updateNotifBadge() {
+    try {
+      const data = await API.getNotifications();
+      const dot = document.getElementById('topNotifDot');
+      dot.style.display = data.unread_count > 0 ? '' : 'none';
+      const badge = document.getElementById('notifBadge');
+      if (badge) {
+        badge.textContent = data.unread_count;
+        badge.style.display = data.unread_count > 0 ? '' : 'none';
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  // Refresh notifications every 30s
+  setInterval(updateNotifBadge, 30000);
+</script>
+{% block dashboard_js %}{% endblock %}
+{% endblock %}
+

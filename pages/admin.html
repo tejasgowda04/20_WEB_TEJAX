@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard – EduEvent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
+  <style>
+    .conflict-alert { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+    .venue-chip { display:inline-block;padding:.2rem .6rem;border-radius:6px;font-size:.72rem;background:rgba(102,126,234,0.15);color:#a5b4fc;border:1px solid rgba(102,126,234,0.3);margin:.1rem; }
+    .suggest-form { background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:1.25rem;margin-top:1rem; }
+    .user-row-actions { display:flex;gap:.4rem;flex-wrap:wrap; }
+    .notif-item { display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);transition:var(--transition); }
+    .notif-item:hover { background:var(--bg-card); }
+    .notif-dot-unread { width:8px;height:8px;border-radius:50%;background:#ef4444;margin-top:5px;flex-shrink:0; }
+    .notif-dot-read { width:8px;height:8px;border-radius:50%;background:transparent;flex-shrink:0; }
+    .notif-msg { font-size:.85rem;line-height:1.5; }
+    .notif-time { font-size:.7rem;color:var(--text-muted);margin-top:.2rem; }
+  </style>
+</head>
+<body class="dashboard">
+
+  <!-- Sidebar -->
+  <aside class="sidebar sidebar-admin" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🛡️</div>
+      <div>
+        <div class="sidebar-title">EduEvent</div>
+        <div class="sidebar-subtitle">Admin Panel</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Overview</div>
+        <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
+          <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+        </div>
+        <div class="nav-item" data-page="pendingEvents" onclick="showPage('pendingEvents',this)">
+          <span class="nav-icon">⏳</span><span class="nav-label">Pending Events</span>
+          <span class="nav-badge" id="pendingBadge">0</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Management</div>
+        <div class="nav-item" data-page="allEvents" onclick="showPage('allEvents',this)">
+          <span class="nav-icon">📅</span><span class="nav-label">All Events</span>
+        </div>
+        <div class="nav-item" data-page="venues" onclick="showPage('venues',this)">
+          <span class="nav-icon">🏛️</span><span class="nav-label">Venue Management</span>
+        </div>
+        <div class="nav-item" data-page="conflicts" onclick="showPage('conflicts',this)">
+          <span class="nav-icon">⚠️</span><span class="nav-label">Conflict Detector</span>
+          <span class="nav-badge" id="conflictBadge" style="background:#f59e0b;display:none">!</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Users</div>
+        <div class="nav-item" data-page="users" onclick="showPage('users',this)">
+          <span class="nav-icon">👥</span><span class="nav-label">User Management</span>
+          <span class="nav-badge" id="pendingUsersBadge" style="display:none">0</span>
+        </div>
+        <div class="nav-item" data-page="notifications" onclick="showPage('notifications',this)">
+          <span class="nav-icon">🔔</span><span class="nav-label">Notifications</span>
+          <span class="nav-badge" id="notifBadge" style="display:none">0</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Reports</div>
+        <div class="nav-item" data-page="analytics" onclick="showPage('analytics',this)">
+          <span class="nav-icon">📈</span><span class="nav-label">Analytics</span>
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" id="adminAvatar">A</div>
+      <div class="user-info">
+        <div class="user-name" id="adminName">Admin</div>
+        <div class="user-role">Administrator</div>
+      </div>
+      <button onclick="DB.logout()" class="btn btn-sm btn-outline nav-logout-label" style="padding:.3rem .6rem" title="Logout">🚪</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content" id="mainContent">
+    <div class="topbar">
+      <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="notification-btn" onclick="showPage('notifications',null)">
+          🔔<span class="notif-dot" id="topNotifDot" style="display:none"></span>
+        </button>
+        <span style="color:var(--text-muted);font-size:.8rem" id="topbarDate"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- ═══ DASHBOARD PAGE ═══ -->
+      <div id="page-dashboard" class="tab-panel active">
+        <div class="page-header">
+          <h1>Welcome back, <span id="dashAdminName">Admin</span> 👋</h1>
+          <p>Here's an overview of the college event system.</p>
+        </div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;" id="dashGridWrap">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📅 Upcoming Events</div>
+              <button class="btn btn-sm btn-outline" onclick="showPage('allEvents',null)">View All</button>
+            </div>
+            <div id="dashUpcoming"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">⏳ Pending Approvals</div>
+              <button class="btn btn-sm btn-outline" onclick="showPage('pendingEvents',null)">Review</button>
+            </div>
+            <div id="dashPending"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PENDING EVENTS ═══ -->
+      <div id="page-pendingEvents" class="tab-panel">
+        <div class="page-header">
+          <h1>Pending Event Requests</h1>
+          <p>Review, approve, reject, or suggest alternate dates for HOD event requests.</p>
+        </div>
+        <div id="pendingEventsList"></div>
+      </div>
+
+      <!-- ═══ ALL EVENTS ═══ -->
+      <div id="page-allEvents" class="tab-panel">
+        <div class="page-header">
+          <h1>All Events</h1>
+          <p>Complete list of all events across all departments.</p>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="eventSearch" placeholder="🔍 Search events..." oninput="renderAllEvents()"/>
+          <select id="eventFilterStatus" onchange="renderAllEvents()">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <select id="eventFilterBranch" onchange="renderAllEvents()">
+            <option value="">All Branches</option>
+          </select>
+          <select id="eventFilterCategory" onchange="renderAllEvents()">
+            <option value="">All Categories</option>
+            <option value="Technical">Technical</option>
+            <option value="Cultural">Cultural</option>
+            <option value="Sports">Sports</option>
+            <option value="Seminar">Seminar</option>
+            <option value="Workshop">Workshop</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Event</th><th>Branch</th><th>Date</th><th>Venue</th><th>Category</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="allEventsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ VENUES ═══ -->
+      <div id="page-venues" class="tab-panel">
+        <div class="page-header">
+          <h1>Venue Management</h1>
+          <p>Track real-time availability of all college venues.</p>
+        </div>
+        <div id="venueGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem;"></div>
+      </div>
+
+      <!-- ═══ CONFLICT DETECTOR ═══ -->
+      <div id="page-conflicts" class="tab-panel">
+        <div class="page-header">
+          <h1>Conflict Detector</h1>
+          <p>Automatically detect scheduling conflicts between events.</p>
+        </div>
+        <div id="conflictList"></div>
+      </div>
+
+      <!-- ═══ USERS ═══ -->
+      <div id="page-users" class="tab-panel">
+        <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
+          <div>
+            <h1>User Management</h1>
+            <p>Approve new registrations and manage all system users.</p>
+          </div>
+          <button class="btn btn-primary" onclick="this.innerHTML='<span class=\'loader\' style=\'width:12px;height:12px\'></span>'; DB.init().then(()=>{ this.textContent='🔄 Refresh List'; renderUsers(currentUserTab); })">🔄 Refresh List</button>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchUserTab('pending',this)">⏳ Pending Approval</button>
+          <button class="tab-btn" onclick="switchUserTab('hods',this)">🏛️ HODs</button>
+          <button class="tab-btn" onclick="switchUserTab('students',this)">🎒 Students</button>
+          <button class="tab-btn" onclick="switchUserTab('teachers',this)">📚 Teachers</button>
+        </div>
+        <div id="usersContent"></div>
+      </div>
+
+      <!-- ═══ NOTIFICATIONS ═══ -->
+      <div id="page-notifications" class="tab-panel">
+        <div class="page-header">
+          <h1>Notifications</h1>
+          <p>System alerts and activity updates.</p>
+        </div>
+        <div class="card" style="padding:0">
+          <div id="notifList"></div>
+        </div>
+      </div>
+
+      <!-- ═══ ANALYTICS ═══ -->
+      <div id="page-analytics" class="tab-panel">
+        <div class="page-header">
+          <h1>Analytics & Reports</h1>
+          <p>Event trends and venue usage statistics.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📊 Events by Branch</div></div>
+            <div class="bar-chart" id="branchChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🏛️ Events by Venue</div></div>
+            <div class="bar-chart" id="venueChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">📈 Events by Category</div></div>
+            <div class="bar-chart" id="categoryChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">✅ Approval Rate</div></div>
+            <div id="approvalStats" style="text-align:center;padding:2rem;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+
+  <!-- Modal: Event Detail + Approve/Reject/Suggest -->
+  <div class="modal-overlay" id="eventModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modalEventTitle">Event Details</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modalEventBody"></div>
+      <div class="modal-footer" id="modalEventFooter"></div>
+    </div>
+  </div>
+
+  <!-- Modal: Suggest Date -->
+  <div class="modal-overlay" id="suggestModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">📅 Suggest Alternate Date / Venue</div>
+        <button class="modal-close" onclick="closeSuggestModal()">✕</button>
+      </div>
+      <input type="hidden" id="suggestEventId"/>
+      <div class="form-group">
+        <label>Event</label>
+        <input type="text" id="suggestEventName" readonly style="opacity:.7"/>
+      </div>
+      <div class="form-group">
+        <label for="suggestDate">New Date *</label>
+        <input type="date" id="suggestDate" required/>
+      </div>
+      <div class="form-group">
+        <label for="suggestVenue">New Venue *</label>
+        <select id="suggestVenue"></select>
+      </div>
+      <div class="form-group">
+        <label for="suggestNote">Message to HOD</label>
+        <textarea id="suggestNote" rows="3" placeholder="Explain the reason for suggestion..."></textarea>
+      </div>
+      <div id="suggestConflictWarn" class="alert alert-warning" style="display:none"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeSuggestModal()">Cancel</button>
+        <button class="btn btn-warning" onclick="submitSuggestion()">📤 Send Suggestion</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/db.js?v=2"></script>
+{% verbatim %}
+  <script>
+  // ── Auth Guard ──────────────────────────────────────────────────────────
+  let user = null;
+  function _initUser() {
+    user = DB.requireAuth('admin');
+    if(!user) return;
+    document.getElementById('adminName').textContent = user.name;
+    document.getElementById('dashAdminName').textContent = user.name.split(' ')[0];
+    document.getElementById('adminAvatar').textContent = user.name[0];
+    document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  }
+
+  // ── Sidebar Toggle ──────────────────────────────────────────────────────
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    document.getElementById('mainContent').classList.toggle('expanded');
+  }
+
+  // ── Page Navigation ──────────────────────────────────────────────────────
+  const pageTitles = {
+    dashboard:'Dashboard', pendingEvents:'Pending Event Requests', allEvents:'All Events',
+    venues:'Venue Management', conflicts:'Conflict Detector',
+    users:'User Management', notifications:'Notifications', analytics:'Analytics'
+  };
+  function showPage(name, navEl) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    if (navEl) navEl.classList.add('active');
+    else {
+      const el = document.querySelector(`[data-page="${name}"]`);
+      if(el) el.classList.add('active');
+    }
+    document.getElementById('pageTitle').textContent = pageTitles[name] || name;
+    renderPage(name);
+  }
+
+  async function renderPage(name) {
+    const renders = {
+      dashboard: renderDashboard, 
+      pendingEvents: renderPending,
+      allEvents: renderAllEvents, 
+      venues: renderVenues,
+      conflicts: renderConflicts, 
+      users: () => renderUsers('pending'),
+      notifications: renderNotifications, 
+      analytics: renderAnalytics,
+    };
+    if (renders[name]) await renders[name]();
+  }
+
+  // ── Shared Utilities ─────────────────────────────────────────────────────
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  function statusBadge(s) {
+    const map = {pending:'badge-pending',approved:'badge-approved',rejected:'badge-rejected'};
+    return `<span class="badge ${map[s]||'badge-pending'}">${s}</span>`;
+  }
+  function isPast(date) { return new Date(date) < new Date(); }
+
+  // ── Update Badges ────────────────────────────────────────────────────────
+  function updateBadges() {
+    const pending = DB.getEvents({status:'pending'}).length;
+    const el = document.getElementById('pendingBadge');
+    el.textContent = pending; el.style.display = pending ? '' : 'none';
+
+    // conflicts
+    const conflicts = detectAllConflicts();
+    const cb = document.getElementById('conflictBadge');
+    cb.style.display = conflicts.length ? '' : 'none';
+
+    // pending users
+    const pu = DB.getPendingUsers().length;
+    const pub = document.getElementById('pendingUsersBadge');
+    pub.textContent = pu; pub.style.display = pu ? '' : 'none';
+
+    // notifs
+    const unread = DB.getNotifications('admin').filter(n=>!n.read).length;
+    const nb = document.getElementById('notifBadge');
+    nb.textContent = unread; nb.style.display = unread ? '' : 'none';
+    document.getElementById('topNotifDot').style.display = unread ? '' : 'none';
+  }
+
+  // ── Dashboard ────────────────────────────────────────────────────────────
+  async function renderDashboard() {
+    // Refresh events from API for real-time dashboard
+    const res = await DB._fetch('/api/events/?t=' + Date.now());
+    if (res && res.events) DB._cache.events = res.events.map(e => DB._normalizeEvent(e));
+    
+    const events = DB.getEvents();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const pending = events.filter(e=>e.status==='pending');
+    const upcoming = events.filter(e=>e.status==='approved' && new Date(e.date)>=today);
+    const users    = DB.getAllUsers();
+    const venues   = DB.get(DB.KEYS.VENUES);
+    const conflicts= detectAllConflicts();
+
+    document.getElementById('statsGrid').innerHTML = [
+      { icon:'📅', label:'Total Events',      val: events.length,                 color:'rgba(102,126,234,0.15)', iconBg:'rgba(102,126,234,0.3)' },
+      { icon:'⏳', label:'Pending Approval',   val: pending.length,                color:'rgba(245,158,11,0.15)',  iconBg:'rgba(245,158,11,0.3)' },
+      { icon:'✅', label:'Approved Events',    val: events.filter(e=>e.status==='approved').length, color:'rgba(16,185,129,0.15)', iconBg:'rgba(16,185,129,0.3)' },
+      { icon:'⚠️', label:'Conflicts Detected', val: conflicts.length,              color:'rgba(239,68,68,0.15)',   iconBg:'rgba(239,68,68,0.3)' },
+      { icon:'👥', label:'Total Users',        val: users.length,                  color:'rgba(139,92,246,0.15)', iconBg:'rgba(139,92,246,0.3)' },
+      { icon:'🏛️', label:'Active Venues',      val: venues.length,                 color:'rgba(59,130,246,0.15)', iconBg:'rgba(59,130,246,0.3)' },
+    ].map(s=>`
+      <div class="stat-card" style="border-color:${s.color.replace('0.15','0.3')}">
+        <div class="stat-icon" style="background:${s.iconBg}">${s.icon}</div>
+        <div class="stat-info"><h3>${s.val}</h3><p>${s.label}</p></div>
+      </div>`).join('');
+
+    // Upcoming mini list
+    const upEl = document.getElementById('dashUpcoming');
+    if (!upcoming.length) { upEl.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><p>No upcoming events.</p></div>`; }
+    else {
+      upEl.innerHTML = upcoming.slice(0,5).map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">${e.title}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">${e.branch} · ${fmtDate(e.date)}</div>
+          </div>
+          <span class="venue-chip">${e.venueName}</span>
+        </div>`).join('');
+    }
+
+    // Pending mini list
+    const peEl = document.getElementById('dashPending');
+    if (!pending.length) { peEl.innerHTML=`<div class="empty-state"><div class="empty-icon">🎉</div><h3>All clear!</h3><p>No pending approvals.</p></div>`; }
+    else {
+      peEl.innerHTML = pending.slice(0,5).map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">${e.title}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">${e.branch} · ${fmtDate(e.date)}</div>
+          </div>
+          <button class="btn btn-sm btn-warning" onclick="openEventModal('${e.id}')">Review</button>
+        </div>`).join('');
+    }
+
+    updateBadges();
+  }
+
+  // ── Pending Events ────────────────────────────────────────────────────────
+  async function renderPending() {
+    // Refresh events from API for real-time 
+    const res = await DB._fetch('/api/events/?status=pending&t=' + Date.now());
+    if (res && res.events) {
+       // Only update pending events in cache to avoid losing other data
+       const pIds = res.events.map(e=>e.id);
+       DB._cache.events = DB._cache.events.filter(e => e.status !== 'pending' || pIds.includes(e.id));
+       res.events.forEach(e => {
+         if (!DB._cache.events.find(ex => ex.id === e.id)) DB._cache.events.push(DB._normalizeEvent(e));
+       });
+    }
+
+    const pending = DB.getEvents({status:'pending'});
+    const el = document.getElementById('pendingEventsList');
+    if (!pending.length) {
+      el.innerHTML=`<div class="card"><div class="empty-state"><div class="empty-icon">🎉</div><h3>All Clear!</h3><p>No pending event requests.</p></div></div>`;
+      return;
+    }
+    el.innerHTML = pending.map(e => {
+      const conflicts = DB.detectConflicts(e.venueId, e.date, e.endDate, e.id);
+      const hasConflict = conflicts.length > 0;
+      return `
+        <div class="card ${hasConflict?'conflict-alert':''}" style="${hasConflict?'border-color:rgba(239,68,68,0.5)':''}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+            <div>
+              <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                <h3 style="font-size:1.1rem;font-weight:700">${e.title}</h3>
+                ${statusBadge(e.status)}
+                ${hasConflict?`<span class="badge badge-conflict">⚠️ Conflict</span>`:''}
+                ${e.suggestedDate?`<span class="badge badge-pending">📅 Date Suggested</span>`:''}
+              </div>
+              <div style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:.75rem">
+                <span style="font-size:.8rem;color:var(--text-muted)">🏛️ ${e.branch}</span>
+                <span style="font-size:.8rem;color:var(--text-muted)">📅 ${fmtDate(e.date)}${e.endDate&&e.endDate!==e.date?' – '+fmtDate(e.endDate):''}</span>
+                <span style="font-size:.8rem;color:var(--text-muted)">📍 ${e.venueName}</span>
+                <span style="font-size:.8rem;color:var(--text-muted)">👤 ${e.organizer}</span>
+                <span style="font-size:.8rem;color:var(--text-muted)">👥 ~${e.expectedAttendees} attendees</span>
+              </div>
+              <p style="margin-top:.5rem;font-size:.85rem;color:var(--text-secondary)">${e.description}</p>
+              ${hasConflict?`
+                <div class="alert alert-danger" style="margin-top:.75rem">
+                  <span>⚠️</span>
+                  <div><strong>Scheduling Conflict!</strong> This venue is already booked for: 
+                    ${conflicts.map(c=>`<strong>${c.title}</strong> (${fmtDate(c.date)})`).join(', ')}
+                  </div>
+                </div>`:''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.5rem;align-items:flex-end">
+              <button class="btn btn-success btn-sm" onclick="quickApprove('${e.id}')">✅ Approve</button>
+              <button class="btn btn-warning btn-sm" onclick="openSuggestModal('${e.id}','${e.title.replace(/'/g,"\\'")}')">📅 Suggest Date</button>
+              <button class="btn btn-danger btn-sm" onclick="quickReject('${e.id}')">❌ Reject</button>
+              <button class="btn btn-outline btn-sm" onclick="openEventModal('${e.id}')">👁 View Details</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+    updateBadges();
+  }
+
+  // ── All Events ────────────────────────────────────────────────────────────
+  function renderAllEvents() {
+    // Populate branch filter
+    const bf = document.getElementById('eventFilterBranch');
+    if (bf.options.length <= 1) {
+      DB.BRANCHES.forEach(b => { const o=document.createElement('option');o.value=o.textContent=b;bf.appendChild(o); });
+    }
+
+    const search   = (document.getElementById('eventSearch')||{value:''}).value.toLowerCase();
+    const status   = document.getElementById('eventFilterStatus').value;
+    const branch   = document.getElementById('eventFilterBranch').value;
+    const category = document.getElementById('eventFilterCategory').value;
+
+    let events = DB.getEvents();
+    if (search)   events = events.filter(e => e.title.toLowerCase().includes(search)||e.organizer.toLowerCase().includes(search));
+    if (status)   events = events.filter(e => e.status === status);
+    if (branch)   events = events.filter(e => e.branch === branch);
+    if (category) events = events.filter(e => e.category === category);
+
+    const tbody = document.getElementById('allEventsBody');
+    if (!events.length) {
+      tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No events found.</p></div></td></tr>`;
+      return;
+    }
+    const conflicts = detectAllConflicts();
+    const conflictIds = conflicts.flatMap(c=>c.ids);
+
+    tbody.innerHTML = events.map(e => {
+      const isConflict = conflictIds.includes(e.id);
+      return `<tr class="${isConflict?'conflict-row':''}">
+        <td><div style="font-weight:600">${e.title}${isConflict?'<span class="badge badge-conflict" style="margin-left:.5rem">⚠️</span>':''}</div></td>
+        <td><span class="venue-chip">${e.branch}</span></td>
+        <td>${fmtDate(e.date)}</td>
+        <td>${e.venueName}</td>
+        <td><span class="badge badge-upcoming">${e.category||'—'}</span></td>
+        <td>${statusBadge(e.status)}</td>
+        <td>
+          <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+            ${e.status==='pending'?`<button class="btn btn-sm btn-success" onclick="quickApprove('${e.id}')">✅</button>
+              <button class="btn btn-sm btn-danger" onclick="quickReject('${e.id}')">❌</button>`:''}
+            <button class="btn btn-sm btn-outline" onclick="openEventModal('${e.id}')">👁</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteEvent('${e.id}')" style="opacity:.6">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Venues ────────────────────────────────────────────────────────────────
+  function renderVenues() {
+    const venues = DB.get(DB.KEYS.VENUES);
+    const events = DB.getEvents({status:'approved'});
+    const el = document.getElementById('venueGrid');
+    el.innerHTML = venues.map(v => {
+      const today = new Date().toISOString().split('T')[0];
+      const todayEvents = events.filter(e => e.venueId===v.id && e.date<=today && (e.endDate||e.date)>=today);
+      const futureEvents = events.filter(e => e.venueId===v.id && e.date>today);
+      const utilization = Math.round((events.filter(e=>e.venueId===v.id).length / Math.max(events.length,1)) * 100);
+      const isAvailable = todayEvents.length === 0;
+      return `
+        <div class="card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem">
+            <div>
+              <h3 style="font-size:1rem;font-weight:700">${v.name}</h3>
+              <div style="font-size:.8rem;color:var(--text-muted);margin-top:.25rem">Capacity: ${v.capacity.toLocaleString()} | ${v.description}</div>
+            </div>
+            <span class="badge ${isAvailable?'badge-approved':'badge-conflict'}">${isAvailable?'Available':'In Use'}</span>
+          </div>
+          <div style="display:flex;gap:2rem;margin-bottom:.75rem">
+            <div style="text-align:center">
+              <div style="font-size:1.4rem;font-weight:800;color:#3b82f6">${futureEvents.length}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Upcoming</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:1.4rem;font-weight:800;color:#10b981">${events.filter(e=>e.venueId===v.id).length}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Total Booked</div>
+            </div>
+          </div>
+          ${futureEvents.length?`
+            <div style="margin-top:.75rem">
+              <div style="font-size:.75rem;font-weight:600;color:var(--text-muted);margin-bottom:.5rem">UPCOMING BOOKINGS</div>
+              ${futureEvents.slice(0,3).map(e=>`
+                <div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.8rem">
+                  <span style="color:var(--text-primary);font-weight:500">${e.title}</span>
+                  <span style="color:var(--text-muted)">${fmtDate(e.date)}</span>
+                </div>`).join('')}
+            </div>`:``}
+        </div>`;
+    }).join('');
+  }
+
+  // ── Conflict Detection ────────────────────────────────────────────────────
+  function detectAllConflicts() {
+    const events = DB.get(DB.KEYS.EVENTS).filter(e=>e.status!=='rejected');
+    const conflicts = [];
+    for (let i=0;i<events.length;i++) {
+      for (let j=i+1;j<events.length;j++) {
+        const a=events[i], b=events[j];
+        if (a.venueId !== b.venueId) continue;
+        const aS=new Date(a.date), aE=new Date(a.endDate||a.date);
+        const bS=new Date(b.date), bE=new Date(b.endDate||b.date);
+        if (!(aE<bS||aS>bE)) {
+          conflicts.push({ ids:[a.id,b.id], a, b });
+        }
+      }
+    }
+    return conflicts;
+  }
+
+  function renderConflicts() {
+    const conflicts = detectAllConflicts();
+    const el = document.getElementById('conflictList');
+    if (!conflicts.length) {
+      el.innerHTML=`<div class="card"><div class="empty-state"><div class="empty-icon">✅</div><h3>No Conflicts!</h3><p>All events are scheduled without overlap.</p></div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="alert alert-danger" style="margin-bottom:1.5rem">⚠️ <strong>${conflicts.length} scheduling conflict${conflicts.length>1?'s':''} detected.</strong> Please resolve them before approving events.</div>` +
+      conflicts.map(({a,b})=>`
+        <div class="card" style="border-color:rgba(239,68,68,0.5)">
+          <div class="card-header">
+            <div class="card-title" style="color:#f87171">⚠️ Venue Conflict – ${a.venueName}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div style="background:rgba(239,68,68,0.08);padding:1rem;border-radius:10px;border:1px solid rgba(239,68,68,0.2)">
+              <div style="font-weight:700;margin-bottom:.5rem">${a.title}</div>
+              <div style="font-size:.8rem;color:var(--text-muted)">📅 ${fmtDate(a.date)}${a.endDate&&a.endDate!==a.date?' – '+fmtDate(a.endDate):''}</div>
+              <div style="font-size:.8rem;color:var(--text-muted)">🏛️ ${a.branch}</div>
+              <div style="margin-top:.5rem">${statusBadge(a.status)}</div>
+              <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+                <button class="btn btn-sm btn-warning" onclick="openSuggestModal('${a.id}','${a.title.replace(/'/g,"\\'")}')">📅 Suggest Date</button>
+                <button class="btn btn-sm btn-danger" onclick="quickReject('${a.id}')">❌ Reject</button>
+              </div>
+            </div>
+            <div style="background:rgba(239,68,68,0.08);padding:1rem;border-radius:10px;border:1px solid rgba(239,68,68,0.2)">
+              <div style="font-weight:700;margin-bottom:.5rem">${b.title}</div>
+              <div style="font-size:.8rem;color:var(--text-muted)">📅 ${fmtDate(b.date)}${b.endDate&&b.endDate!==b.date?' – '+fmtDate(b.endDate):''}</div>
+              <div style="font-size:.8rem;color:var(--text-muted)">🏛️ ${b.branch}</div>
+              <div style="margin-top:.5rem">${statusBadge(b.status)}</div>
+              <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+                <button class="btn btn-sm btn-warning" onclick="openSuggestModal('${b.id}','${b.title.replace(/'/g,"\\'")}')">📅 Suggest Date</button>
+                <button class="btn btn-sm btn-danger" onclick="quickReject('${b.id}')">❌ Reject</button>
+              </div>
+            </div>
+          </div>
+        </div>`).join('');
+  }
+
+  // ── Users ─────────────────────────────────────────────────────────────────
+  let currentUserTab = 'pending';
+  function switchUserTab(tab, btn) {
+    currentUserTab = tab;
+    document.querySelectorAll('#page-users .tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderUsers(tab);
+  }
+
+  async function renderUsers(tab) {
+    currentUserTab = tab;
+    const el = document.getElementById('usersContent');
+    el.innerHTML = '<div style="text-align:center;padding:2rem;"><span class="loader"></span> Loading users...</div>';
+    
+    // Always force fetch fresh data when rendering users to guarantee no missed requests
+    const uRes = await DB._fetch('/api/users/?t=' + Date.now());
+    if (uRes && uRes.users) DB._cache.users = uRes.users;
+
+    let users;
+    if (tab==='pending') {
+      users = DB.getPendingUsers();
+      if (!users.length) { el.innerHTML=`<div class="card"><div class="empty-state"><div class="empty-icon">🎉</div><h3>No pending approvals</h3></div></div>`; return; }
+    } else {
+      const keyMap = { hods:DB.KEYS.HODS, students:DB.KEYS.STUDENTS, teachers:DB.KEYS.TEACHERS };
+      users = DB.get(keyMap[tab]);
+    }
+
+    el.innerHTML = `<div class="table-container"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Branch</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${users.map(u=>`
+        <tr>
+          <td style="font-weight:600">${u.name}</td>
+          <td><a href="mailto:${u.email}" style="color:#667eea">${u.email}</a></td>
+          <td>${u.branch||'—'}</td>
+          <td><span class="badge badge-upcoming">${u.role}</span></td>
+          <td>${u.is_approved?`<span class="badge badge-approved">Active</span>`:`<span class="badge badge-pending">Pending</span>`}</td>
+          <td class="user-row-actions">
+            ${!u.is_approved?`<button class="btn btn-sm btn-success" onclick="approveUser('${u.role}','${u.id}')">✅ Approve</button>`:''}
+            ${u.is_active!==false?`<button class="btn btn-sm btn-danger" onclick="deactivateUser('${u.role}','${u.id}')">🚫 Deactivate</button>`:'<span class="badge badge-rejected">Deactivated</span>'}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+    updateBadges();
+  }
+
+  function approveUser(role, id) {
+    DB.approveUser(role, id);
+    renderUsers(currentUserTab);
+    alert(`User approved successfully!`);
+  }
+  function deactivateUser(role, id) {
+    if (!confirm('Deactivate this user?')) return;
+    DB.deactivateUser(role, id);
+    renderUsers(currentUserTab);
+  }
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+  function renderNotifications() {
+    const notifs = DB.getNotifications('admin');
+    const el = document.getElementById('notifList');
+    if (!notifs.length) {
+      el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications.</p></div>`;
+      return;
+    }
+    el.innerHTML = notifs.map(n=>`
+      <div class="notif-item" onclick="DB.markNotifRead('${n.id}');renderNotifications();updateBadges()">
+        <div class="${n.read?'notif-dot-read':'notif-dot-unread'}"></div>
+        <div>
+          <div class="notif-msg" style="${n.read?'color:var(--text-muted)':''}">${n.message}</div>
+          <div class="notif-time">${new Date(n.created_at || new Date()).toLocaleString('en-IN')}</div>
+        </div>
+      </div>`).join('');
+    updateBadges();
+  }
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+  function renderAnalytics() {
+    const events  = DB.getEvents();
+    const venues  = DB.get(DB.KEYS.VENUES);
+
+    function barChart(containerId, data, colorFn) {
+      const max = Math.max(...Object.values(data),1);
+      const el = document.getElementById(containerId);
+      const colors = ['#667eea','#8b5cf6','#10b981','#f59e0b','#ef4444','#3b82f6','#06b6d4','#84cc16'];
+      el.innerHTML = Object.entries(data).map(([k,v],i)=>`
+        <div class="bar-item">
+          <div class="bar-label">${k}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(v/max*100).toFixed(1)}%;background:${colors[i%colors.length]}"></div></div>
+          <div class="bar-value">${v}</div>
+        </div>`).join('');
+    }
+
+    const byBranch = {};
+    DB.BRANCHES.forEach(b=>byBranch[b]=events.filter(e=>e.branch===b).length);
+    barChart('branchChart', byBranch);
+
+    const byVenue = {};
+    venues.forEach(v=>byVenue[v.name]=events.filter(e=>e.venueId===v.id).length);
+    barChart('venueChart', byVenue);
+
+    const cats = ['Technical','Cultural','Sports','Seminar','Workshop','Other'];
+    const byCat = {};
+    cats.forEach(c=>byCat[c]=events.filter(e=>(e.category||'Other')===c).length);
+    barChart('categoryChart', byCat);
+
+    const approved = events.filter(e=>e.status==='approved').length;
+    const rejected = events.filter(e=>e.status==='rejected').length;
+    const pending  = events.filter(e=>e.status==='pending').length;
+    const total = events.length || 1;
+    document.getElementById('approvalStats').innerHTML = `
+      <div style="font-size:3rem;font-weight:800;background:var(--gradient-green);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${Math.round(approved/total*100)}%</div>
+      <div style="color:var(--text-muted);margin-bottom:1.5rem">Approval Rate</div>
+      <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap">
+        <div><div style="font-size:1.5rem;font-weight:700;color:#34d399">${approved}</div><div style="font-size:.75rem;color:var(--text-muted)">Approved</div></div>
+        <div><div style="font-size:1.5rem;font-weight:700;color:#fbbf24">${pending}</div><div style="font-size:.75rem;color:var(--text-muted)">Pending</div></div>
+        <div><div style="font-size:1.5rem;font-weight:700;color:#f87171">${rejected}</div><div style="font-size:.75rem;color:var(--text-muted)">Rejected</div></div>
+      </div>`;
+  }
+
+  // ── Quick Actions ─────────────────────────────────────────────────────────
+  function quickApprove(id) {
+    const ev = DB.getEvents().find(e=>e.id===id);
+    const note = prompt(`Approve "${ev.title}"?\nOptional note to HOD:`,'');
+    if (note === null) return;
+    DB.approveEvent(id, note);
+    renderPage(document.querySelector('.nav-item.active')?.dataset.page || 'dashboard');
+    updateBadges();
+  }
+
+  function quickReject(id) {
+    const ev = DB.getEvents().find(e=>e.id===id);
+    const note = prompt(`Reject "${ev.title}"?\nReason (required):`, '');
+    if (!note) { alert('Please provide a reason.'); return; }
+    DB.rejectEvent(id, note);
+    renderPage(document.querySelector('.nav-item.active')?.dataset.page || 'dashboard');
+    updateBadges();
+  }
+
+  function deleteEvent(id) {
+    if (!confirm('Delete this event permanently?')) return;
+    DB.deleteEvent(id);
+    renderAllEvents();
+    updateBadges();
+  }
+
+  // ── Event Modal ───────────────────────────────────────────────────────────
+  function openEventModal(id) {
+    const ev = DB.getEvents().find(e=>e.id===id);
+    if (!ev) return;
+    document.getElementById('modalEventTitle').textContent = ev.title;
+    document.getElementById('modalEventBody').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.9rem">
+        <div>${statusBadge(ev.status)} <span class="badge badge-upcoming">${ev.category||'—'}</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div><strong>Branch:</strong><br><span style="color:var(--text-secondary)">${ev.branch}</span></div>
+          <div><strong>Organizer:</strong><br><span style="color:var(--text-secondary)">${ev.organizer}</span></div>
+          <div><strong>Date:</strong><br><span style="color:var(--text-secondary)">${fmtDate(ev.date)}${ev.endDate&&ev.endDate!==ev.date?' – '+fmtDate(ev.endDate):''}</span></div>
+          <div><strong>Venue:</strong><br><span style="color:var(--text-secondary)">${ev.venueName}</span></div>
+          <div><strong>Attendees:</strong><br><span style="color:var(--text-secondary)">~${ev.expectedAttendees||'N/A'}</span></div>
+          <div><strong>Created:</strong><br><span style="color:var(--text-secondary)">${fmtDate(ev.createdAt)}</span></div>
+        </div>
+        <div><strong>Description:</strong><br><p style="color:var(--text-secondary);line-height:1.6">${ev.description}</p></div>
+        ${ev.adminNote?`<div class="alert alert-info">📝 Admin Note: ${ev.adminNote}</div>`:''}
+        ${ev.suggestedDate?`<div class="alert alert-warning">📅 Suggested Date: ${fmtDate(ev.suggestedDate)} at ${ev.suggestedVenueName||ev.venueName}</div>`:''}
+      </div>`;
+    const footer = document.getElementById('modalEventFooter');
+    footer.innerHTML = `
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      ${ev.status==='pending'?`
+        <button class="btn btn-success" onclick="closeModal();quickApprove('${ev.id}')">✅ Approve</button>
+        <button class="btn btn-warning" onclick="closeModal();openSuggestModal('${ev.id}','${ev.title.replace(/'/g,"\\'")}')">📅 Suggest</button>
+        <button class="btn btn-danger" onclick="closeModal();quickReject('${ev.id}')">❌ Reject</button>`:''}`;
+    document.getElementById('eventModal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('eventModal').classList.remove('open'); }
+
+  // ── Suggest Modal ─────────────────────────────────────────────────────────
+  function openSuggestModal(id, title) {
+    document.getElementById('suggestEventId').value = id;
+    document.getElementById('suggestEventName').value = title;
+    document.getElementById('suggestDate').value = '';
+    document.getElementById('suggestNote').value = '';
+    document.getElementById('suggestConflictWarn').style.display='none';
+    // Populate venues
+    const venues = DB.get(DB.KEYS.VENUES);
+    const vsel = document.getElementById('suggestVenue');
+    vsel.innerHTML = venues.map(v=>`<option value="${v.id}">${v.name} (Cap: ${v.capacity})</option>`).join('');
+    document.getElementById('suggestModal').classList.add('open');
+
+    // Listen for date/venue change to check conflicts
+    ['suggestDate','suggestVenue'].forEach(fid => {
+      document.getElementById(fid).addEventListener('change', checkSuggestConflict);
+    });
+  }
+
+  function checkSuggestConflict() {
+    const evId = document.getElementById('suggestEventId').value;
+    const date  = document.getElementById('suggestDate').value;
+    const venue = document.getElementById('suggestVenue').value;
+    const warn  = document.getElementById('suggestConflictWarn');
+    if (!date||!venue) { warn.style.display='none'; return; }
+    const conflicts = DB.detectConflicts(venue, date, date, evId);
+    if (conflicts.length) {
+      warn.style.display='flex';
+      warn.innerHTML = `⚠️ <strong style="margin-left:.5rem">Still a conflict!</strong> This venue/date overlaps with: ${conflicts.map(c=>c.title).join(', ')}. Consider another slot.`;
+    } else {
+      warn.style.display='none';
+    }
+  }
+
+  function closeSuggestModal() { document.getElementById('suggestModal').classList.remove('open'); }
+
+  function submitSuggestion() {
+    const id    = document.getElementById('suggestEventId').value;
+    const date  = document.getElementById('suggestDate').value;
+    const venue = document.getElementById('suggestVenue').value;
+    const note  = document.getElementById('suggestNote').value;
+    if (!date) { alert('Please pick a new date.'); return; }
+    DB.suggestDate(id, date, venue, note);
+    closeSuggestModal();
+    renderPage(document.querySelector('.nav-item.active')?.dataset.page || 'pendingEvents');
+    updateBadges();
+    alert('Date suggestion sent to HOD!');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  function _boot() { _initUser(); updateBadges(); renderDashboard(); }
+  if (DB._cache.loaded) _boot();
+  else window.addEventListener('db-ready', _boot);
+  </script>
+{% endverbatim %}
+</body>
+</html>
+

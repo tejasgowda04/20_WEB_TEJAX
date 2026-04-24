@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard – EduEvent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
+</head>
+<body class="dashboard">
+
+  <aside class="sidebar sidebar-student" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🎒</div>
+      <div>
+        <div class="sidebar-title">EduEvent</div>
+        <div class="sidebar-subtitle">Student Portal</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Explore</div>
+        <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
+          <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+        </div>
+        <div class="nav-item" data-page="upcoming" onclick="showPage('upcoming',this)">
+          <span class="nav-icon">📅</span><span class="nav-label">Upcoming Events</span>
+        </div>
+        <div class="nav-item" data-page="past" onclick="showPage('past',this)">
+          <span class="nav-icon">📜</span><span class="nav-label">Past Events</span>
+        </div>
+        <div class="nav-item" data-page="allEvents" onclick="showPage('allEvents',this)">
+          <span class="nav-icon">🌐</span><span class="nav-label">All Events</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">My Activity</div>
+        <div class="nav-item" data-page="myApplications" onclick="showPage('myApplications',this)">
+          <span class="nav-icon">📋</span><span class="nav-label">My Applications</span>
+          <span class="nav-badge" id="appBadge" style="display:none">0</span>
+        </div>
+        <div class="nav-item" data-page="notifications" onclick="showPage('notifications',this)">
+          <span class="nav-icon">🔔</span><span class="nav-label">Notifications</span>
+          <span class="nav-badge" id="notifBadge" style="display:none">0</span>
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-avatar" style="background:linear-gradient(135deg,#10b981,#059669)" id="stuAvatar">S</div>
+      <div class="user-info">
+        <div class="user-name" id="stuNameSidebar">Student</div>
+        <div class="user-role" id="stuBranchSidebar">Branch</div>
+      </div>
+      <button onclick="DB.logout()" class="btn btn-sm btn-outline" style="padding:.3rem .6rem" title="Logout">🚪</button>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <div class="topbar">
+      <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title" id="pageTitle">Home</div>
+      <div class="topbar-actions">
+        <button class="notification-btn" onclick="showPage('notifications',null)">
+          🔔<span class="notif-dot" id="topNotifDot" style="display:none"></span>
+        </button>
+        <span style="color:var(--text-muted);font-size:.8rem" id="topbarDate"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- ═══ HOME / DASHBOARD ═══ -->
+      <div id="page-dashboard" class="tab-panel active">
+        <div class="page-header">
+          <h1 id="stuGreet">Welcome 👋</h1>
+          <p id="stuSubtitle">Discover and participate in college events.</p>
+        </div>
+
+        <!-- Featured upcoming events -->
+        <div class="card" style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(5,150,105,0.06));border-color:rgba(16,185,129,0.3);margin-bottom:1.5rem">
+          <div class="card-header">
+            <div class="card-title">🌟 Featured Upcoming Events</div>
+            <button class="btn btn-sm btn-outline" onclick="showPage('upcoming',null)">View All</button>
+          </div>
+          <div id="featuredEvents" class="event-grid"></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📊 Quick Stats</div>
+            </div>
+            <div id="stuStats"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🎓 My Coordinator Applications</div>
+              <button class="btn btn-sm btn-outline" onclick="showPage('myApplications',null)">View All</button>
+            </div>
+            <div id="dashMyApps"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ UPCOMING EVENTS ═══ -->
+      <div id="page-upcoming" class="tab-panel">
+        <div class="page-header">
+          <h1>Upcoming Events</h1>
+          <p>Approved events happening in the future. Apply as a coordinator!</p>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="upSearch" placeholder="🔍 Search events..." oninput="renderUpcoming()"/>
+          <select id="upBranch" onchange="renderUpcoming()">
+            <option value="">All Branches</option>
+          </select>
+          <select id="upCategory" onchange="renderUpcoming()">
+            <option value="">All Categories</option>
+            <option>Technical</option><option>Cultural</option><option>Sports</option>
+            <option>Seminar</option><option>Workshop</option>
+          </select>
+        </div>
+        <div class="event-grid" id="upcomingGrid"></div>
+      </div>
+
+      <!-- ═══ PAST EVENTS ═══ -->
+      <div id="page-past" class="tab-panel">
+        <div class="page-header">
+          <h1>Past Events</h1>
+          <p>Events that have already taken place.</p>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="pastSearch" placeholder="🔍 Search..." oninput="renderPast()"/>
+          <select id="pastBranch" onchange="renderPast()">
+            <option value="">All Branches</option>
+          </select>
+        </div>
+        <div class="event-grid" id="pastGrid"></div>
+      </div>
+
+      <!-- ═══ ALL EVENTS ═══ -->
+      <div id="page-allEvents" class="tab-panel">
+        <div class="page-header">
+          <h1>All College Events</h1>
+          <p>Complete list of events (past &amp; future) from all departments.</p>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="allSearch" placeholder="🔍 Search..." oninput="renderAll()"/>
+          <select id="allBranch" onchange="renderAll()">
+            <option value="">All Branches</option>
+          </select>
+          <select id="allCategory" onchange="renderAll()">
+            <option value="">All Categories</option>
+            <option>Technical</option><option>Cultural</option><option>Sports</option>
+            <option>Seminar</option><option>Workshop</option>
+          </select>
+          <select id="allTime" onchange="renderAll()">
+            <option value="">All Time</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="past">Past</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Event</th><th>Branch</th><th>Date</th><th>Venue</th><th>Category</th><th>Time</th><th>Action</th></tr></thead>
+            <tbody id="allEventsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ MY APPLICATIONS ═══ -->
+      <div id="page-myApplications" class="tab-panel">
+        <div class="page-header">
+          <h1>My Coordinator Applications</h1>
+          <p>Track the status of your coordinator applications.</p>
+        </div>
+        <div id="myAppsList"></div>
+      </div>
+
+      <!-- ═══ NOTIFICATIONS ═══ -->
+      <div id="page-notifications" class="tab-panel">
+        <div class="page-header"><h1>Notifications</h1></div>
+        <div class="card" style="padding:0"><div id="notifList"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Coordinator Apply Modal -->
+  <div class="modal-overlay" id="coordModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🎓 Apply as Coordinator</div>
+        <button class="modal-close" onclick="closeCoordModal()">✕</button>
+      </div>
+      <input type="hidden" id="coordEventId"/>
+      <input type="hidden" id="coordHodId"/>
+      <div class="form-group">
+        <label>Event</label>
+        <input type="text" id="coordEventName" readonly style="opacity:.7"/>
+      </div>
+      <div class="form-group">
+        <label>Your Branch</label>
+        <input type="text" id="coordStudBranch" readonly style="opacity:.7"/>
+      </div>
+      <div class="alert alert-info" id="branchMatchAlert" style="margin-bottom:1rem;display:none"></div>
+      <div class="form-group">
+        <label for="coordMessage">Why do you want to be a coordinator?</label>
+        <textarea id="coordMessage" rows="4" placeholder="Share your motivation and relevant skills..."></textarea>
+      </div>
+      <div id="coordError" class="error-msg"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeCoordModal()">Cancel</button>
+        <button class="btn btn-success" onclick="submitCoordApp()">🚀 Submit Application</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Detail Modal -->
+  <div class="modal-overlay" id="eventDetailModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <div class="modal-title" id="evDetailTitle">Event Details</div>
+        <button class="modal-close" onclick="document.getElementById('eventDetailModal').classList.remove('open')">✕</button>
+      </div>
+      <div id="evDetailBody"></div>
+      <div class="modal-footer" id="evDetailFooter"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/db.js"></script>
+{% verbatim %}
+  <script>
+  // ── Auth Guard ──────────────────────────────────────────────────────────
+  let user = null;
+  function _initUser() {
+    user = DB.requireAuth('student');
+    if (!user) return;
+
+    document.getElementById('stuAvatar').textContent = user.name[0];
+    document.getElementById('stuNameSidebar').textContent = user.name;
+    document.getElementById('stuBranchSidebar').textContent = user.branch;
+    document.getElementById('stuGreet').textContent = `Welcome, ${user.name.split(' ')[0]} 👋`;
+    document.getElementById('stuSubtitle').textContent = `${user.branch} · ${user.year||'Student'} · Roll No: ${user.rollNo||'—'}`;
+    document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+
+    // Populate branch filters
+    ['upBranch','pastBranch','allBranch'].forEach(id => {
+      const el = document.getElementById(id);
+      DB.BRANCHES.forEach(b=>{const o=document.createElement('option');o.value=o.textContent=b;el.appendChild(o);});
+    });
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    document.getElementById('mainContent').classList.toggle('expanded');
+  }
+
+  const pageTitles = {
+    dashboard:'Home', upcoming:'Upcoming Events', past:'Past Events',
+    allEvents:'All Events', myApplications:'My Applications', notifications:'Notifications'
+  };
+
+  function showPage(name, navEl) {
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    if (navEl) navEl.classList.add('active');
+    else { const el=document.querySelector(`[data-page="${name}"]`);if(el)el.classList.add('active'); }
+    document.getElementById('pageTitle').textContent = pageTitles[name]||name;
+    renderPage(name);
+  }
+
+  function renderPage(name) {
+    const renders = {
+      dashboard: renderDashboard, upcoming: renderUpcoming,
+      past: renderPast, allEvents: renderAll,
+      myApplications: renderMyApps, notifications: renderNotifications
+    };
+    if (renders[name]) renders[name]();
+  }
+
+  function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  const catColors = {
+    'Technical':'#667eea','Cultural':'#f59e0b','Sports':'#10b981',
+    'Seminar':'#8b5cf6','Workshop':'#3b82f6','Other':'#94a3b8'
+  };
+
+  function hasApplied(eventId) {
+    return DB.getCoordRequests({studentId:user.id,eventId}).length > 0;
+  }
+
+  function updateBadges() {
+    const apps = DB.getCoordRequests({studentId:user.id}).length;
+    const ab = document.getElementById('appBadge');
+    ab.textContent=apps; ab.style.display=apps?'':'none';
+
+    const unread = DB.getNotifications(user.id).filter(n=>!n.read).length;
+    const nb = document.getElementById('notifBadge');
+    nb.textContent=unread; nb.style.display=unread?'':'none';
+    document.getElementById('topNotifDot').style.display=unread?'':'none';
+  }
+
+  // ── Event Card Builder ────────────────────────────────────────────────
+  function buildEventCard(e, showApply=false) {
+    const today   = new Date();
+    const isPast  = new Date(e.date) < today;
+    const applied = hasApplied(e.id);
+    return `
+      <div class="event-card fade-in">
+        <div class="event-card-accent" style="background:${catColors[e.category]||'#667eea'}"></div>
+        <div class="event-card-header">
+          <div class="event-card-title">${e.title}</div>
+          <span class="badge ${isPast?'badge-past':'badge-upcoming'}">${isPast?'Past':'Upcoming'}</span>
+        </div>
+        <div class="event-meta">
+          <div class="event-meta-item"><span class="event-meta-icon">🏛️</span>${e.branch}</div>
+          <div class="event-meta-item"><span class="event-meta-icon">📅</span>${fmtDate(e.date)}${e.endDate&&e.endDate!==e.date?' – '+fmtDate(e.endDate):''}</div>
+          <div class="event-meta-item"><span class="event-meta-icon">📍</span>${e.venueName}</div>
+          <div class="event-meta-item"><span class="event-meta-icon">👤</span>${e.organizer}</div>
+          ${e.expectedAttendees?`<div class="event-meta-item"><span class="event-meta-icon">👥</span>~${e.expectedAttendees} attendees</div>`:''}
+        </div>
+        <p style="font-size:.8rem;color:var(--text-muted);line-height:1.5;margin-bottom:1rem">${e.description.slice(0,120)}${e.description.length>120?'...':''}</p>
+        <div class="event-card-footer">
+          <span class="badge badge-upcoming" style="background:${catColors[e.category]||'#667eea'}22;color:${catColors[e.category]||'#667eea'};border-color:${catColors[e.category]||'#667eea'}55">${e.category||'Event'}</span>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-sm btn-outline" onclick="openEventDetail('${e.id}')">👁 View</button>
+            ${showApply&&!isPast ? (applied
+              ? `<span class="badge badge-approved" style="align-self:center">✅ Applied</span>`
+              : `<button class="btn btn-sm btn-success" onclick="openCoordModal('${e.id}','${e.title.replace(/'/g,"\\'")}','${e.hodId||''}')">🎓 Apply</button>`)
+            : ''}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Dashboard ──────────────────────────────────────────────────────────
+  function renderDashboard() {
+    const allApproved = DB.getEvents({status:'approved'});
+    const today = new Date();
+    const upcoming = allApproved.filter(e=>new Date(e.date)>=today);
+    const past     = allApproved.filter(e=>new Date(e.date)<today);
+    const myBranch = allApproved.filter(e=>e.branch===user.branch);
+    const myApps   = DB.getCoordRequests({studentId:user.id});
+
+    // Stats
+    document.getElementById('stuStats').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        ${[
+          {icon:'📅',val:upcoming.length,label:'Upcoming'},
+          {icon:'📜',val:past.length,label:'Past Events'},
+          {icon:'🏛️',val:myBranch.length,label:'My Branch Events'},
+          {icon:'🎓',val:myApps.length,label:'Applications'},
+        ].map(s=>`<div style="background:rgba(16,185,129,0.08);padding:1rem;border-radius:10px;border:1px solid rgba(16,185,129,0.2);text-align:center">
+          <div style="font-size:1.5rem">${s.icon}</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#34d399">${s.val}</div>
+          <div style="font-size:.72rem;color:var(--text-muted)">${s.label}</div>
+        </div>`).join('')}
+      </div>`;
+
+    // Featured
+    const featured = upcoming.slice(0,3);
+    const fEl = document.getElementById('featuredEvents');
+    if (!featured.length) { fEl.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><p>No upcoming events yet.</p></div>`; }
+    else { fEl.innerHTML = featured.map(e=>buildEventCard(e,true)).join(''); }
+
+    // My apps mini
+    const maEl = document.getElementById('dashMyApps');
+    if (!myApps.length) { maEl.innerHTML=`<div class="empty-state"><div class="empty-icon">🎓</div><p>You haven't applied to any events yet.</p><button class="btn btn-sm btn-primary" onclick="showPage('upcoming',null)" style="margin-top:.75rem">Browse Events</button></div>`; }
+    else {
+      maEl.innerHTML = myApps.slice(0,4).map(a=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:600;font-size:.85rem">${a.eventTitle}</div>
+            <div style="font-size:.72rem;color:var(--text-muted)">${fmtDate(a.createdAt)}</div>
+          </div>
+          <span class="badge ${a.status==='approved'?'badge-approved':a.status==='rejected'?'badge-rejected':'badge-pending'}">${a.status}</span>
+        </div>`).join('');
+    }
+
+    updateBadges();
+  }
+
+  // ── Upcoming ───────────────────────────────────────────────────────────
+  function renderUpcoming() {
+    const search   = document.getElementById('upSearch').value.toLowerCase();
+    const branch   = document.getElementById('upBranch').value;
+    const category = document.getElementById('upCategory').value;
+    const today = new Date(); today.setHours(0,0,0,0);
+    let events = DB.getEvents({status:'approved'}).filter(e=>new Date(e.date)>=today);
+    if (search)   events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search));
+    if (branch)   events = events.filter(e=>e.branch===branch);
+    if (category) events = events.filter(e=>e.category===category);
+    const el = document.getElementById('upcomingGrid');
+    if (!events.length) { el.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><h3>No upcoming events</h3><p>Check back later!</p></div>`; return; }
+    el.innerHTML = events.map(e=>buildEventCard(e,true)).join('');
+    updateBadges();
+  }
+
+  // ── Past ───────────────────────────────────────────────────────────────
+  function renderPast() {
+    const search = document.getElementById('pastSearch').value.toLowerCase();
+    const branch = document.getElementById('pastBranch').value;
+    const today  = new Date(); today.setHours(0,0,0,0);
+    let events = DB.getEvents({status:'approved'}).filter(e=>new Date(e.date)<today);
+    if (search) events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search));
+    if (branch) events = events.filter(e=>e.branch===branch);
+    events = events.slice().reverse(); // most recent first
+    const el = document.getElementById('pastGrid');
+    if (!events.length) { el.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📜</div><h3>No past events</h3></div>`; return; }
+    el.innerHTML = events.map(e=>buildEventCard(e,false)).join('');
+  }
+
+  // ── All Events ─────────────────────────────────────────────────────────
+  function renderAll() {
+    const search   = document.getElementById('allSearch').value.toLowerCase();
+    const branch   = document.getElementById('allBranch').value;
+    const category = document.getElementById('allCategory').value;
+    const time     = document.getElementById('allTime').value;
+    const today    = new Date(); today.setHours(0,0,0,0);
+    let events = DB.getEvents({status:'approved'});
+    if (search)   events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search));
+    if (branch)   events = events.filter(e=>e.branch===branch);
+    if (category) events = events.filter(e=>e.category===category);
+    if (time==='upcoming') events = events.filter(e=>new Date(e.date)>=today);
+    if (time==='past')     events = events.filter(e=>new Date(e.date)<today);
+    const tbody = document.getElementById('allEventsBody');
+    if (!events.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No events found.</p></div></td></tr>`; return; }
+    const applied = hasApplied;
+    tbody.innerHTML = events.map(e=>{
+      const isPast = new Date(e.date)<today;
+      const didApply = applied(e.id);
+      return `<tr>
+        <td style="font-weight:600">${e.title}</td>
+        <td><span style="font-size:.75rem;color:#a5b4fc;background:rgba(102,126,234,0.15);padding:.2rem .6rem;border-radius:6px">${e.branch}</span></td>
+        <td>${fmtDate(e.date)}</td>
+        <td>${e.venueName}</td>
+        <td><span class="badge badge-upcoming" style="background:${catColors[e.category]||'#667eea'}22;color:${catColors[e.category]||'#667eea'}">${e.category||'—'}</span></td>
+        <td><span class="badge ${isPast?'badge-past':'badge-upcoming'}">${isPast?'Past':'Upcoming'}</span></td>
+        <td style="display:flex;gap:.35rem;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-sm btn-outline" onclick="openEventDetail('${e.id}')">👁</button>
+          ${!isPast?(didApply?`<span class="badge badge-approved">✅ Applied</span>`:`<button class="btn btn-sm btn-success" onclick="openCoordModal('${e.id}','${e.title.replace(/'/g,"\\'")}','${e.hodId||''}')">🎓 Apply</button>`):''}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── My Applications ────────────────────────────────────────────────────
+  function renderMyApps() {
+    const apps = DB.getCoordRequests({studentId:user.id});
+    const el = document.getElementById('myAppsList');
+    if (!apps.length) { el.innerHTML=`<div class="card"><div class="empty-state"><div class="empty-icon">🎓</div><h3>No applications yet</h3><p>Browse upcoming events and apply as a coordinator!</p><button class="btn btn-primary" onclick="showPage('upcoming',null)" style="margin-top:1rem">Browse Events</button></div></div>`; return; }
+    el.innerHTML = apps.map(a=>`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+          <div>
+            <div style="font-weight:700;font-size:1rem;margin-bottom:.35rem">${a.eventTitle}</div>
+            <div style="font-size:.8rem;color:var(--text-muted)">Applied on ${fmtDate(a.createdAt)}</div>
+            ${a.message?`<div class="alert alert-info" style="margin-top:.75rem;font-size:.8rem">💬 Your note: "${a.message}"</div>`:''}
+          </div>
+          <div style="text-align:right">
+            <span class="badge ${a.status==='approved'?'badge-approved':a.status==='rejected'?'badge-rejected':'badge-pending'}" style="font-size:.85rem;padding:.35rem .9rem">${a.status.toUpperCase()}</span>
+            ${a.status==='approved'?`<div style="font-size:.75rem;color:#34d399;margin-top:.5rem">🎉 Congratulations! You're a coordinator.</div>`:''}
+            ${a.status==='rejected'?`<div style="font-size:.75rem;color:#f87171;margin-top:.5rem">Application was not selected.</div>`:''}
+            ${a.status==='pending'?`<div style="font-size:.75rem;color:#fbbf24;margin-top:.5rem">⏳ Awaiting HOD decision.</div>`:''}
+          </div>
+        </div>
+      </div>`).join('');
+    updateBadges();
+  }
+
+  // ── Notifications ──────────────────────────────────────────────────────
+  function renderNotifications() {
+    const notifs = DB.getNotifications(user.id);
+    const el = document.getElementById('notifList');
+    if (!notifs.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications yet.</p></div>`; return; }
+    el.innerHTML = notifs.map(n=>`
+      <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);cursor:pointer" onclick="DB.markNotifRead('${n.id}');renderNotifications()">
+        <div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${n.read?'transparent':'#10b981'}"></div>
+        <div>
+          <div style="font-size:.85rem;line-height:1.5;${n.read?'color:var(--text-muted)':''}">${n.message}</div>
+          <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
+        </div>
+      </div>`).join('');
+    updateBadges();
+  }
+
+  // ── Event Detail Modal ─────────────────────────────────────────────────
+  function openEventDetail(id) {
+    const e = DB.getEvents().find(ev=>ev.id===id);
+    if (!e) return;
+    const today  = new Date();
+    const isPast = new Date(e.date)<today;
+    const applied= hasApplied(id);
+    document.getElementById('evDetailTitle').textContent = e.title;
+    document.getElementById('evDetailBody').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:.85rem;font-size:.9rem">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <span class="badge ${isPast?'badge-past':'badge-upcoming'}">${isPast?'Past':'Upcoming'}</span>
+          <span class="badge badge-approved">${e.status}</span>
+          <span class="badge badge-upcoming" style="background:${catColors[e.category]||'#94a3b8'}22;color:${catColors[e.category]||'#94a3b8'}">${e.category||'Event'}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div><strong>Department:</strong><br><span style="color:var(--text-secondary)">${e.branch}</span></div>
+          <div><strong>Organizer:</strong><br><span style="color:var(--text-secondary)">${e.organizer}</span></div>
+          <div><strong>Date:</strong><br><span style="color:var(--text-secondary)">${fmtDate(e.date)}${e.endDate&&e.endDate!==e.date?' – '+fmtDate(e.endDate):''}</span></div>
+          <div><strong>Venue:</strong><br><span style="color:var(--text-secondary)">${e.venueName}</span></div>
+          <div><strong>Expected Attendees:</strong><br><span style="color:var(--text-secondary)">~${e.expectedAttendees||'N/A'}</span></div>
+        </div>
+        <div><strong>About This Event:</strong><br><p style="color:var(--text-secondary);line-height:1.7;margin-top:.35rem">${e.description}</p></div>
+        ${!isPast?`<div class="alert alert-info">🎓 You can apply as a coordinator for this event. Coordinators help organize and manage the event.</div>`:''}
+      </div>`;
+    document.getElementById('evDetailFooter').innerHTML = `
+      <button class="btn btn-outline" onclick="document.getElementById('eventDetailModal').classList.remove('open')">Close</button>
+      ${!isPast?(applied?`<button class="btn btn-success" disabled>✅ Already Applied</button>`:`<button class="btn btn-success" onclick="document.getElementById('eventDetailModal').classList.remove('open');openCoordModal('${e.id}','${e.title.replace(/'/g,"\\'")}','${e.hodId||''}')">🎓 Apply as Coordinator</button>`):''}`;
+    document.getElementById('eventDetailModal').classList.add('open');
+  }
+
+  // ── Coordinator Apply Modal ────────────────────────────────────────────
+  function openCoordModal(eventId, eventTitle, hodId) {
+    document.getElementById('coordEventId').value   = eventId;
+    document.getElementById('coordHodId').value     = hodId;
+    document.getElementById('coordEventName').value = eventTitle;
+    document.getElementById('coordStudBranch').value= user.branch;
+    document.getElementById('coordMessage').value   = '';
+    document.getElementById('coordError').classList.remove('show');
+
+    // Check if same branch
+    const ev = DB.getEvents().find(e=>e.id===eventId);
+    const alert = document.getElementById('branchMatchAlert');
+    if (ev && ev.branch === user.branch) {
+      alert.style.display='flex';
+      alert.className='alert alert-success';
+      alert.innerHTML='✅ This event is from your own department. You have priority as a coordinator!';
+    } else if (ev) {
+      alert.style.display='flex';
+      alert.className='alert alert-info';
+      alert.innerHTML=`ℹ️ This event is from <strong>${ev.branch}</strong> department. Cross-department applications are welcome!`;
+    } else { alert.style.display='none'; }
+
+    document.getElementById('coordModal').classList.add('open');
+  }
+
+  function closeCoordModal() { document.getElementById('coordModal').classList.remove('open'); }
+
+  function submitCoordApp() {
+    const eventId    = document.getElementById('coordEventId').value;
+    const hodId      = document.getElementById('coordHodId').value;
+    const eventTitle = document.getElementById('coordEventName').value;
+    const message    = document.getElementById('coordMessage').value.trim();
+    const errEl      = document.getElementById('coordError');
+
+    const ev = DB.getEvents().find(e=>e.id===eventId);
+
+    const result = DB.addCoordRequest({
+      studentId: user.id, studentName: user.name,
+      studentBranch: user.branch, studentYear: user.year||'',
+      studentEmail: user.email, studentPhone: user.phone||'',
+      eventId, eventTitle, hodId: hodId||ev?.hodId||'',
+      message,
+    });
+
+    if (!result.success) {
+      errEl.textContent = result.msg;
+      errEl.classList.add('show');
+      return;
+    }
+
+    closeCoordModal();
+    updateBadges();
+    renderPage(document.querySelector('.nav-item.active')?.dataset.page||'dashboard');
+    alert('🎉 Application submitted! The HOD will review your application.');
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  function _boot() { _initUser(); updateBadges(); renderDashboard(); }
+  if (DB._cache.loaded) _boot();
+  else window.addEventListener('db-ready', _boot);
+  </script>
+{% endverbatim %}
+</body>
+</html>
+

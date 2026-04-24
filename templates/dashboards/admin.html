@@ -1,0 +1,481 @@
+{% extends "dashboards/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% block sidebar_role %}admin{% endblock %}
+{% block sidebar_icon %}🛡️{% endblock %}
+{% block sidebar_subtitle %}Admin Portal{% endblock %}
+{% block avatar_style %}background:linear-gradient(135deg,#f59e0b,#d97706){% endblock %}
+{% block dash_role %}admin{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-section">
+  <div class="nav-section-title">Management</div>
+  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></div>
+  <div class="nav-item" data-page="pendingEvents" onclick="showPage('pendingEvents',this)"><span class="nav-icon">⏳</span><span class="nav-label">Pending Events</span><span class="nav-badge" id="pendingBadge" style="display:none">0</span></div>
+  <div class="nav-item" data-page="allEvents" onclick="showPage('allEvents',this)"><span class="nav-icon">📋</span><span class="nav-label">All Events</span></div>
+  <div class="nav-item" data-page="conflicts" onclick="showPage('conflicts',this)"><span class="nav-icon">⚠️</span><span class="nav-label">Conflicts</span></div>
+</div>
+<div class="nav-section">
+  <div class="nav-section-title">System</div>
+  <div class="nav-item" data-page="venues" onclick="showPage('venues',this)"><span class="nav-icon">📍</span><span class="nav-label">Venues</span></div>
+  <div class="nav-item" data-page="templates" onclick="showPage('templates',this)"><span class="nav-icon">📄</span><span class="nav-label">Event Templates</span></div>
+  <div class="nav-item" data-page="calendar" onclick="showPage('calendar',this)"><span class="nav-icon">🗓️</span><span class="nav-label">College Calendar</span></div>
+  <div class="nav-item" data-page="users" onclick="showPage('users',this)"><span class="nav-icon">👥</span><span class="nav-label">Users</span><span class="nav-badge" id="userBadge" style="display:none">0</span></div>
+  <div class="nav-item" data-page="analytics" onclick="showPage('analytics',this)"><span class="nav-icon">📊</span><span class="nav-label">Analytics</span></div>
+  <div class="nav-item" data-page="notifications" onclick="showPage('notifications',this)"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span><span class="nav-badge" id="notifBadge" style="display:none">0</span></div>
+</div>
+{% endblock %}
+
+{% block pages %}
+<!-- Dashboard Home -->
+<div id="page-dashboard" class="tab-panel active">
+  <div class="page-header"><h1 id="adminGreet">Admin Dashboard</h1><p>System overview and quick actions.</p></div>
+  <div class="stats-grid" id="statsGrid"></div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-top:1.5rem">
+    <div class="card">
+      <div class="card-header"><div class="card-title">⏳ Recent Pending Events</div>
+        <button class="btn btn-sm btn-outline" onclick="showPage('pendingEvents',null)">View All</button></div>
+      <div id="dashPending"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">👥 Pending Users</div>
+        <button class="btn btn-sm btn-outline" onclick="showPage('users',null)">View All</button></div>
+      <div id="dashPendingUsers"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Events -->
+<div id="page-pendingEvents" class="tab-panel">
+  <div class="page-header"><h1>Pending Event Approvals</h1><p>Review and approve or reject HOD event requests.</p></div>
+  <div id="pendingList"></div>
+</div>
+
+<!-- All Events -->
+<div id="page-allEvents" class="tab-panel">
+  <div class="page-header"><h1>All Events</h1></div>
+  <div class="filter-bar">
+    <input type="text" id="evSearch" placeholder="🔍 Search..." oninput="renderAllEvents()"/>
+    <select id="evStatus" onchange="renderAllEvents()"><option value="">All Status</option><option>pending</option><option>approved</option><option>rejected</option></select>
+    <select id="evBranch" onchange="renderAllEvents()"><option value="">All Branches</option></select>
+  </div>
+  <div class="table-container"><table><thead><tr><th>Event</th><th>Branch</th><th>Date</th><th>Venue</th><th>Status</th><th>Public</th><th>Actions</th></tr></thead><tbody id="evBody"></tbody></table></div>
+</div>
+
+<!-- Conflicts -->
+<div id="page-conflicts" class="tab-panel">
+  <div class="page-header"><h1>⚠️ Conflict Detector</h1><p>Events with overlapping venues and dates.</p></div>
+  <div id="conflictsList"></div>
+</div>
+
+<!-- Venues -->
+<div id="page-venues" class="tab-panel">
+  <div class="page-header"><h1>Venue Management</h1></div>
+  <div id="venuesList"></div>
+</div>
+
+<!-- Event Templates -->
+<div id="page-templates" class="tab-panel">
+  <div class="page-header"><h1>📄 Event Templates</h1><p>Predefined templates for recurring events.</p>
+    <button class="btn btn-primary" onclick="openCreateTemplate()">+ New Template</button></div>
+  <div id="templatesList"></div>
+</div>
+
+<!-- College Calendar -->
+<div id="page-calendar" class="tab-panel">
+  <div class="page-header"><h1>🗓️ College Calendar</h1><p>Holidays, exams, and important dates.</p>
+    <button class="btn btn-primary" onclick="openCreateCalEntry()">+ Add Entry</button></div>
+  <div id="calendarList"></div>
+</div>
+
+<!-- Users -->
+<div id="page-users" class="tab-panel">
+  <div class="page-header"><h1>User Management</h1></div>
+  <div class="filter-bar">
+    <select id="usrRole" onchange="renderUsers()"><option value="">All Roles</option><option value="hod">HOD</option><option value="student">Student</option><option value="teacher">Teacher</option></select>
+    <label style="display:flex;align-items:center;gap:.5rem;color:var(--text-muted);font-size:.85rem"><input type="checkbox" id="usrPending" onchange="renderUsers()"/> Pending only</label>
+  </div>
+  <div class="table-container"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Branch</th><th>Status</th><th>Actions</th></tr></thead><tbody id="usrBody"></tbody></table></div>
+</div>
+
+<!-- Analytics -->
+<div id="page-analytics" class="tab-panel">
+  <div class="page-header"><h1>📊 Analytics</h1></div>
+  <div id="analyticsContent"></div>
+</div>
+
+<!-- Notifications -->
+<div id="page-notifications" class="tab-panel">
+  <div class="page-header"><h1>Notifications</h1></div>
+  <div class="card" style="padding:0"><div id="notifList"></div></div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Suggest Date Modal -->
+<div class="modal-overlay" id="suggestModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📅 Suggest Alternate Date</div>
+      <button class="modal-close" onclick="closeSuggestModal()">✕</button></div>
+    <input type="hidden" id="sugEventId"/>
+    <div class="form-group"><label>Suggested Date</label><input type="date" id="sugDate"/></div>
+    <div class="form-group"><label>Suggested Venue</label><select id="sugVenue"></select></div>
+    <div class="form-group"><label>Note to HOD</label><textarea id="sugNote" rows="3" placeholder="Reason for change..."></textarea></div>
+    <div id="sugError" class="error-msg"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSuggestModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSuggestion()">Send Suggestion</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Template Modal -->
+<div class="modal-overlay" id="templateModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📄 New Event Template</div>
+      <button class="modal-close" onclick="document.getElementById('templateModal').classList.remove('open')">✕</button></div>
+    <div class="form-group"><label>Template Name</label><input type="text" id="tplTitle" placeholder="e.g. Annual Day"/></div>
+    <div class="form-group"><label>Description</label><textarea id="tplDesc" rows="3"></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="form-group"><label>Category</label><select id="tplCat"><option>Technical</option><option>Cultural</option><option>Sports</option><option>Seminar</option><option>Workshop</option><option>Other</option></select></div>
+      <div class="form-group"><label>Frequency</label><select id="tplFreq"><option value="yearly">Yearly</option><option value="semesterly">Every Semester</option><option value="monthly">Monthly</option><option value="one_time">One Time</option></select></div>
+      <div class="form-group"><label>Default Venue</label><select id="tplVenue"><option value="">Choose...</option></select></div>
+      <div class="form-group"><label>Typical Month (1-12)</label><input type="number" id="tplMonth" min="1" max="12"/></div>
+      <div class="form-group"><label>Duration (days)</label><input type="number" id="tplDuration" value="1" min="1"/></div>
+      <div class="form-group"><label>Expected Attendees</label><input type="number" id="tplAttendees" value="100"/></div>
+    </div>
+    <div id="tplError" class="error-msg"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('templateModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-success" onclick="submitTemplate()">Create Template</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Entry Modal -->
+<div class="modal-overlay" id="calModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🗓️ Add Calendar Entry</div>
+      <button class="modal-close" onclick="document.getElementById('calModal').classList.remove('open')">✕</button></div>
+    <div class="form-group"><label>Title</label><input type="text" id="calTitle" placeholder="e.g. Diwali Holiday"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="form-group"><label>Date</label><input type="date" id="calDate"/></div>
+      <div class="form-group"><label>End Date (optional)</label><input type="date" id="calEndDate"/></div>
+    </div>
+    <div class="form-group"><label>Type</label><select id="calType"><option value="holiday">Holiday</option><option value="exam">Examination</option><option value="semester_start">Semester Start</option><option value="semester_end">Semester End</option><option value="vacation">Vacation</option><option value="event">College Event</option><option value="other">Other</option></select></div>
+    <div class="form-group"><label>Description</label><textarea id="calDesc" rows="2"></textarea></div>
+    <label style="display:flex;align-items:center;gap:.5rem;color:var(--text-muted);font-size:.85rem;margin-bottom:1rem"><input type="checkbox" id="calRecurring"/> Recurring every year</label>
+    <div id="calError" class="error-msg"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="document.getElementById('calModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-success" onclick="submitCalEntry()">Add Entry</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block dashboard_js %}
+<script>
+const pageTitles = {
+  dashboard:'Dashboard', pendingEvents:'Pending Events', allEvents:'All Events',
+  conflicts:'Conflicts', venues:'Venues', templates:'Event Templates', calendar:'College Calendar',
+  users:'Users', analytics:'Analytics', notifications:'Notifications'
+};
+
+const catColors = {'Technical':'#667eea','Cultural':'#f59e0b','Sports':'#10b981','Seminar':'#8b5cf6','Workshop':'#3b82f6','Other':'#94a3b8'};
+const calTypeColors = {'holiday':'#f59e0b','exam':'#ef4444','semester_start':'#10b981','semester_end':'#3b82f6','vacation':'#8b5cf6','event':'#667eea','other':'#94a3b8'};
+
+let venuesCache = [];
+
+async function initDashboard() {
+  document.getElementById('adminGreet').textContent = `Welcome, ${currentUser.name.split(' ')[0]} 🛡️`;
+  // Load venues for filters
+  const vd = await API.getVenues();
+  venuesCache = vd.venues;
+  // Populate venue selects
+  ['sugVenue','tplVenue'].forEach(id => {
+    const sel = document.getElementById(id);
+    venuesCache.forEach(v => { const o=document.createElement('option'); o.value=v.id; o.textContent=v.name; sel.appendChild(o); });
+  });
+  // Populate branch filter
+  const bd = await API.getBranches();
+  const bf = document.getElementById('evBranch');
+  bd.branches.forEach(b => { const o=document.createElement('option'); o.value=o.textContent=b; bf.appendChild(o); });
+
+  renderDashboard();
+}
+
+function renderPage(name) {
+  const fns = {
+    dashboard:renderDashboard, pendingEvents:renderPending, allEvents:renderAllEvents,
+    conflicts:renderConflicts, venues:renderVenues, templates:renderTemplates,
+    calendar:renderCalendar, users:renderUsers, analytics:renderAnalytics, notifications:renderNotifications
+  };
+  if (fns[name]) fns[name]();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────
+async function renderDashboard() {
+  try {
+    const analytics = await API.getAnalytics();
+    document.getElementById('statsGrid').innerHTML = [
+      {icon:'📋',val:analytics.total_events,label:'Total Events',bg:'rgba(102,126,234,0.25)'},
+      {icon:'⏳',val:analytics.pending,label:'Pending',bg:'rgba(245,158,11,0.25)'},
+      {icon:'✅',val:analytics.approved,label:'Approved',bg:'rgba(16,185,129,0.25)'},
+      {icon:'👥',val:analytics.total_users,label:'Total Users',bg:'rgba(139,92,246,0.25)'},
+    ].map(s=>`<div class="stat-card"><div class="stat-icon" style="background:${s.bg}">${s.icon}</div><div class="stat-info"><h3>${s.val}</h3><p>${s.label}</p></div></div>`).join('');
+
+    // Badges
+    const pb = document.getElementById('pendingBadge');
+    pb.textContent=analytics.pending; pb.style.display=analytics.pending?'':'none';
+    const ub = document.getElementById('userBadge');
+    ub.textContent=analytics.pending_users; ub.style.display=analytics.pending_users?'':'none';
+
+    // Pending events preview
+    const evData = await API.getEvents({status:'pending'});
+    const pe = document.getElementById('dashPending');
+    if (!evData.events.length) { pe.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No pending events!</p></div>'; }
+    else { pe.innerHTML = evData.events.slice(0,5).map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:.85rem">${e.title}</div><div style="font-size:.72rem;color:var(--text-muted)">${e.branch} · ${fmtDate(e.date)} · ${e.venue_name}</div></div><div style="display:flex;gap:.35rem"><button class="btn btn-sm btn-success" onclick="quickApprove('${e.id}')">✅</button><button class="btn btn-sm btn-outline" onclick="quickReject('${e.id}')">❌</button></div></div>`).join(''); }
+
+    // Pending users
+    const usData = await API.getUsers({pending:'true'});
+    const pu = document.getElementById('dashPendingUsers');
+    if (!usData.users.length) { pu.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><p>No pending users.</p></div>'; }
+    else { pu.innerHTML = usData.users.slice(0,5).map(u=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:.65rem 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:.85rem">${u.name}</div><div style="font-size:.72rem;color:var(--text-muted)">${u.role} · ${u.branch}</div></div><button class="btn btn-sm btn-success" onclick="quickApproveUser('${u.id}')">✅ Approve</button></div>`).join(''); }
+
+    updateNotifBadge();
+  } catch (e) { console.error(e); }
+}
+
+async function quickApprove(id) { await API.approveEvent(id); renderDashboard(); }
+async function quickReject(id) { if(confirm('Reject this event?')){ await API.rejectEvent(id,'Rejected by admin'); renderDashboard(); }}
+async function quickApproveUser(id) { await API.approveUser(id); renderDashboard(); }
+
+// ── Pending Events ──────────────────────────────────────────────
+async function renderPending() {
+  const data = await API.getEvents({status:'pending'});
+  const el = document.getElementById('pendingList');
+  if (!data.events.length) { el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">✅</div><h3>No pending events!</h3></div></div>'; return; }
+  el.innerHTML = data.events.map(e=>`
+    <div class="card" style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+        <div style="flex:1">
+          <h3 style="font-size:1rem;margin-bottom:.5rem">${e.title}</h3>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.82rem;color:var(--text-muted)">
+            <span>🏛️ ${e.branch}</span><span>📅 ${fmtDate(e.date)}${e.end_date&&e.end_date!==e.date?' – '+fmtDate(e.end_date):''}</span>
+            <span>📍 ${e.venue_name}</span><span>👤 ${e.organizer}</span><span>👥 ~${e.expected_attendees}</span>
+          </div>
+          <p style="font-size:.82rem;color:var(--text-secondary);margin-top:.5rem;line-height:1.6">${e.description.slice(0,200)}${e.description.length>200?'...':''}</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.5rem;align-items:flex-end">
+          <button class="btn btn-sm btn-success" onclick="quickApprove('${e.id}')">✅ Approve</button>
+          <button class="btn btn-sm btn-outline" style="border-color:#ef4444;color:#ef4444" onclick="quickReject('${e.id}')">❌ Reject</button>
+          <button class="btn btn-sm btn-outline" onclick="openSuggestModal('${e.id}')">📅 Suggest Date</button>
+          <button class="btn btn-sm btn-outline" onclick="makePublic('${e.id}')">🌐 Make Public</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// Suggest Modal
+function openSuggestModal(id) { document.getElementById('sugEventId').value=id; document.getElementById('suggestModal').classList.add('open'); }
+function closeSuggestModal() { document.getElementById('suggestModal').classList.remove('open'); }
+async function submitSuggestion() {
+  const id=document.getElementById('sugEventId').value;
+  const d=document.getElementById('sugDate').value;
+  const v=document.getElementById('sugVenue').value;
+  const n=document.getElementById('sugNote').value;
+  if(!d){showError(document.getElementById('sugError'),'Select a date');return;}
+  await API.suggestDate(id,d,v,n);
+  closeSuggestModal(); renderPending();
+}
+async function makePublic(id) { await API.makePublic(id); alert('Event marked as public!'); }
+
+// ── All Events ──────────────────────────────────────────────────
+async function renderAllEvents() {
+  const search=document.getElementById('evSearch').value;
+  const status=document.getElementById('evStatus').value;
+  const branch=document.getElementById('evBranch').value;
+  const params={};
+  if(search)params.search=search; if(status)params.status=status; if(branch)params.branch=branch;
+  const data = await API.getEvents(params);
+  const tbody = document.getElementById('evBody');
+  if(!data.events.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No events found.</p></div></td></tr>';return;}
+  tbody.innerHTML = data.events.map(e=>`<tr>
+    <td style="font-weight:600">${e.title}</td><td>${e.branch}</td><td>${fmtDate(e.date)}</td><td>${e.venue_name}</td>
+    <td>${statusBadge(e.status)}</td>
+    <td>${e.is_public?'<span class="badge badge-approved">🌐 Yes</span>':'—'}</td>
+    <td style="display:flex;gap:.3rem;flex-wrap:wrap">${e.status==='pending'?`<button class="btn btn-sm btn-success" onclick="quickApprove('${e.id}')">✅</button><button class="btn btn-sm btn-outline" style="border-color:#ef4444;color:#ef4444" onclick="quickReject('${e.id}')">❌</button>`:''}<button class="btn btn-sm btn-outline" onclick="deleteEvent('${e.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+
+async function deleteEvent(id){if(confirm('Delete this event?')){await API.deleteEvent(id);renderAllEvents();}}
+
+// ── Conflicts ──────────────────────────────────────────────────
+async function renderConflicts() {
+  const data = await API.getAllConflicts();
+  const el = document.getElementById('conflictsList');
+  if(!data.conflicts.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">✅</div><h3>No scheduling conflicts detected!</h3></div></div>';return;}
+  el.innerHTML=`<div class="alert alert-warning" style="margin-bottom:1.5rem">⚠️ Found <strong>${data.count}</strong> scheduling conflicts.</div>`+
+    data.conflicts.map(c=>`<div class="card" style="margin-bottom:1rem;border-color:rgba(239,68,68,0.3)">
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;background:rgba(239,68,68,0.05);padding:1rem;border-radius:10px"><strong>${c.event_a.title}</strong><br><span style="font-size:.8rem;color:var(--text-muted)">${c.event_a.branch} · ${fmtDate(c.event_a.date)} · ${statusBadge(c.event_a.status)}</span></div>
+        <div style="display:flex;align-items:center;color:#ef4444;font-size:1.5rem">⚡</div>
+        <div style="flex:1;background:rgba(239,68,68,0.05);padding:1rem;border-radius:10px"><strong>${c.event_b.title}</strong><br><span style="font-size:.8rem;color:var(--text-muted)">${c.event_b.branch} · ${fmtDate(c.event_b.date)} · ${statusBadge(c.event_b.status)}</span></div>
+      </div>
+      <div style="font-size:.82rem;color:var(--text-muted);margin-top:.75rem">📍 Conflicting venue: <strong>${c.venue}</strong></div>
+    </div>`).join('');
+}
+
+// ── Venues ──────────────────────────────────────────────────────
+async function renderVenues() {
+  const data = await API.getVenues();
+  document.getElementById('venuesList').innerHTML = data.venues.map(v=>`
+    <div class="card" style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><h3 style="font-size:1rem">📍 ${v.name}</h3><div style="font-size:.82rem;color:var(--text-muted)">Capacity: ${v.capacity.toLocaleString()} · ${v.description}</div></div>
+        <div style="display:flex;gap:1rem;text-align:center">
+          <div><div style="font-size:1.4rem;font-weight:800;color:${v.is_available?'#10b981':'#ef4444'}">${v.is_available?'✅':'🔴'}</div><div style="font-size:.65rem;color:var(--text-muted)">Today</div></div>
+          <div><div style="font-size:1.4rem;font-weight:800;color:#3b82f6">${v.upcoming_count}</div><div style="font-size:.65rem;color:var(--text-muted)">Upcoming</div></div>
+          <div><div style="font-size:1.4rem;font-weight:800;color:#94a3b8">${v.total_booked}</div><div style="font-size:.65rem;color:var(--text-muted)">Total</div></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Templates ──────────────────────────────────────────────────
+async function renderTemplates() {
+  const data = await API.getTemplates();
+  const el = document.getElementById('templatesList');
+  if(!data.templates.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📄</div><h3>No templates yet</h3><p>Create templates for recurring events.</p></div></div>';return;}
+  el.innerHTML = data.templates.map(t=>`
+    <div class="card" style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem">
+        <div><h3 style="font-size:1rem">${t.title}</h3><p style="font-size:.82rem;color:var(--text-muted);margin-top:.3rem">${t.description.slice(0,150)}</p>
+          <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+            <span class="badge badge-upcoming">${t.category}</span>
+            <span class="badge badge-approved">${t.frequency_display}</span>
+            ${t.typical_month?`<span class="badge badge-pending">Month: ${t.typical_month}</span>`:''}
+            ${t.default_venue_name?`<span class="badge badge-upcoming">📍 ${t.default_venue_name}</span>`:''}
+          </div>
+        </div>
+        <div style="font-size:.82rem;color:var(--text-muted);text-align:right">
+          <div>👥 ~${t.expected_attendees}</div>
+          <div>📅 ${t.typical_duration_days} day(s)</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openCreateTemplate(){document.getElementById('templateModal').classList.add('open');}
+async function submitTemplate(){
+  const data={
+    title:document.getElementById('tplTitle').value.trim(),
+    description:document.getElementById('tplDesc').value.trim(),
+    category:document.getElementById('tplCat').value,
+    frequency:document.getElementById('tplFreq').value,
+    default_venue_id:document.getElementById('tplVenue').value||null,
+    typical_month:parseInt(document.getElementById('tplMonth').value)||null,
+    typical_duration_days:parseInt(document.getElementById('tplDuration').value)||1,
+    expected_attendees:parseInt(document.getElementById('tplAttendees').value)||100,
+  };
+  if(!data.title){showError(document.getElementById('tplError'),'Title required');return;}
+  await API.createTemplate(data);
+  document.getElementById('templateModal').classList.remove('open');
+  renderTemplates();
+}
+
+// ── Calendar ──────────────────────────────────────────────────
+async function renderCalendar(){
+  const data=await API.getCalendar(new Date().getFullYear());
+  const el=document.getElementById('calendarList');
+  if(!data.entries.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📅</div><h3>No calendar entries</h3></div></div>';return;}
+  el.innerHTML=data.entries.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`
+    <div style="display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;border-left:4px solid ${calTypeColors[e.type]||'#94a3b8'}">
+      <div style="min-width:50px;text-align:center"><div style="font-size:1.2rem;font-weight:800">${new Date(e.date).getDate()}</div><div style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase">${new Date(e.date).toLocaleString('en',{month:'short'})}</div></div>
+      <div style="flex:1"><div style="font-weight:600;font-size:.9rem">${e.title}</div><div style="font-size:.72rem;color:var(--text-muted)">${e.type_display}${e.end_date?' · Until '+fmtDate(e.end_date):''}${e.is_recurring?' · 🔁 Yearly':''}</div></div>
+      ${e.type!=='event'?`<button class="btn btn-sm btn-outline" style="border-color:#ef4444;color:#ef4444" onclick="deleteCalEntry('${e.id}')">🗑️</button>`:''}
+    </div>`).join('');
+}
+
+function openCreateCalEntry(){document.getElementById('calModal').classList.add('open');}
+async function submitCalEntry(){
+  const data={
+    title:document.getElementById('calTitle').value.trim(),
+    date:document.getElementById('calDate').value,
+    end_date:document.getElementById('calEndDate').value||null,
+    type:document.getElementById('calType').value,
+    description:document.getElementById('calDesc').value,
+    is_recurring:document.getElementById('calRecurring').checked,
+  };
+  if(!data.title||!data.date){showError(document.getElementById('calError'),'Title and date required');return;}
+  await API.createCalendarEntry(data);
+  document.getElementById('calModal').classList.remove('open');
+  renderCalendar();
+}
+async function deleteCalEntry(id){if(confirm('Delete this entry?')){await API.deleteCalendarEntry(id);renderCalendar();}}
+
+// ── Users ──────────────────────────────────────────────────────
+async function renderUsers(){
+  const params={};
+  const r=document.getElementById('usrRole').value; if(r)params.role=r;
+  if(document.getElementById('usrPending').checked)params.pending='true';
+  const data=await API.getUsers(params);
+  const tbody=document.getElementById('usrBody');
+  tbody.innerHTML=data.users.map(u=>`<tr>
+    <td style="font-weight:600">${u.name}</td><td>${u.email}</td>
+    <td><span class="badge badge-upcoming">${u.role}</span></td><td>${u.branch}</td>
+    <td>${u.is_approved?'<span class="badge badge-approved">Approved</span>':'<span class="badge badge-pending">Pending</span>'}</td>
+    <td style="display:flex;gap:.3rem">${!u.is_approved?`<button class="btn btn-sm btn-success" onclick="doApproveUser('${u.id}')">✅</button>`:''}<button class="btn btn-sm btn-outline" style="border-color:#ef4444;color:#ef4444" onclick="doDeactivateUser('${u.id}')">🚫</button></td>
+  </tr>`).join('');
+}
+async function doApproveUser(id){await API.approveUser(id);renderUsers();}
+async function doDeactivateUser(id){if(confirm('Deactivate this user?')){await API.deactivateUser(id);renderUsers();}}
+
+// ── Analytics ──────────────────────────────────────────────────
+async function renderAnalytics(){
+  const d=await API.getAnalytics();
+  document.getElementById('analyticsContent').innerHTML=`
+    <div class="stats-grid">${[
+      {icon:'📋',val:d.total_events,label:'Total Events'},
+      {icon:'✅',val:d.approved,label:'Approved'},
+      {icon:'⏳',val:d.pending,label:'Pending'},
+      {icon:'❌',val:d.rejected,label:'Rejected'},
+      {icon:'📊',val:d.approval_rate+'%',label:'Approval Rate'},
+      {icon:'👥',val:d.total_users,label:'Total Users'},
+    ].map(s=>`<div class="stat-card"><div class="stat-icon" style="background:rgba(102,126,234,0.2)">${s.icon}</div><div class="stat-info"><h3>${s.val}</h3><p>${s.label}</p></div></div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem">
+      <div class="card"><div class="card-title">Events by Branch</div>${buildBarChart(d.by_branch)}</div>
+      <div class="card"><div class="card-title">Events by Category</div>${buildBarChart(d.by_category,catColors)}</div>
+      <div class="card"><div class="card-title">Events by Venue</div>${buildBarChart(d.by_venue)}</div>
+    </div>`;
+}
+
+function buildBarChart(data, colorMap){
+  const max=Math.max(...Object.values(data),1);
+  return Object.entries(data).map(([k,v])=>`
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem">
+      <div style="width:120px;font-size:.75rem;color:var(--text-muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div>
+      <div style="flex:1;background:var(--border);border-radius:99px;height:8px;overflow:hidden"><div style="height:100%;background:${(colorMap&&colorMap[k])||'#667eea'};border-radius:99px;width:${(v/max*100).toFixed(1)}%"></div></div>
+      <div style="width:25px;font-size:.75rem;font-weight:600">${v}</div>
+    </div>`).join('');
+}
+
+// ── Notifications ──────────────────────────────────────────────
+async function renderNotifications(){
+  const data=await API.getNotifications();
+  const el=document.getElementById('notifList');
+  if(!data.notifications.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications yet.</p></div>';return;}
+  el.innerHTML=data.notifications.map(n=>`
+    <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);cursor:pointer" onclick="markNotifRead('${n.id}')">
+      <div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${n.is_read?'transparent':'#f59e0b'}"></div>
+      <div><div style="font-size:.85rem;line-height:1.5;${n.is_read?'color:var(--text-muted)':''}">${n.message}</div>
+        <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem">${new Date(n.created_at).toLocaleString('en-IN')}</div></div>
+    </div>`).join('');
+  updateNotifBadge();
+}
+async function markNotifRead(id){await API.markRead(id);renderNotifications();}
+</script>
+{% endblock %}
+

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome – EduEvent College Portal</title>
+  <meta name="description" content="Welcome to our college – Explore achievements, campus life, and our unified event management portal."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/welcome.css"/>
+</head>
+<body>
+
+  <!-- ====== VISITOR POPUP FORM ====== -->
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup-box" id="popupBox">
+      <button class="popup-close" id="popupClose" aria-label="Close">✕</button>
+      <div class="popup-icon">👋</div>
+      <h2 class="popup-title">Welcome, Visitor!</h2>
+      <p class="popup-subtitle">Sign in to explore our college portal and upcoming events.</p>
+      <form class="popup-form" id="visitorForm" onsubmit="handleVisitorSubmit(event)">
+        <div class="form-group">
+          <label for="visitorName">Full Name</label>
+          <input type="text" id="visitorName" placeholder="Enter your name" required />
+        </div>
+        <div class="form-group">
+          <label for="visitorEmail">Email Address</label>
+          <input type="email" id="visitorEmail" placeholder="Enter your email" required />
+        </div>
+        <div class="form-group">
+          <label for="visitorPurpose">Purpose of Visit</label>
+          <select id="visitorPurpose" required>
+            <option value="">Select purpose…</option>
+            <option value="admission">Admission Inquiry</option>
+            <option value="event">Event Information</option>
+            <option value="alumni">Alumni Visit</option>
+            <option value="recruitment">Campus Recruitment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <button type="submit" class="popup-btn">Visit Our Portal →</button>
+      </form>
+      <div class="popup-success" id="popupSuccess" style="display:none;">
+        <div class="success-icon">✅</div>
+        <h3>Thank you for visiting!</h3>
+        <p>Redirecting you to our main portal…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== NAVBAR ====== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-brand">
+      <span class="nav-logo">🎓</span>
+      <span class="nav-name">EduEvent</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#gallery">Campus</a></li>
+      <li><a href="#achievements">Achievements</a></li>
+      <li><a href="#events-preview">Events</a></li>
+      <li><a href="index.html" class="nav-cta">Enter Portal</a></li>
+    </ul>
+    <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
+  </nav>
+
+  <!-- ====== HERO SECTION ====== -->
+  <section class="hero">
+    <div class="hero-bg">
+      <img src="/static/images/college_campus.png" alt="College Campus" class="hero-img"/>
+      <div class="hero-overlay"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">🏛️ Est. 1985 · Accredited A+ by NAAC</div>
+      <h1 class="hero-title">
+        Shaping Tomorrow's<br/>
+        <span class="hero-highlight">Leaders Today</span>
+      </h1>
+      <p class="hero-desc">
+        A premier institution of excellence in education, research & innovation.
+        Empowering students to achieve their fullest potential.
+      </p>
+      <div class="hero-actions">
+        <a href="index.html" class="btn-primary">Enter Event Portal ✦</a>
+        <a href="#about" class="btn-secondary">Explore More ↓</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-num">12,000+</span><span class="stat-label">Students</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">450+</span><span class="stat-label">Faculty</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">25+</span><span class="stat-label">Departments</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">98%</span><span class="stat-label">Placement</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== ABOUT SECTION ====== -->
+  <section class="about-section" id="about">
+    <div class="container">
+      <div class="section-tag">About Us</div>
+      <h2 class="section-title">A Legacy of Academic Excellence</h2>
+      <div class="about-grid">
+        <div class="about-text">
+          <p>
+            Founded in <strong>1985</strong>, our college has been a beacon of higher education in the region
+            for over four decades. We offer undergraduate, postgraduate, and doctoral programs across
+            Engineering, Science, Arts, Commerce, and Management disciplines.
+          </p>
+          <p>
+            Our <strong>NAAC A+ accredited</strong> institution is committed to fostering critical thinking,
+            innovation, and holistic development. With world-class infrastructure, experienced faculty,
+            and an active student community, we provide an environment where every student thrives.
+          </p>
+          <p>
+            Our industry-aligned curriculum, cutting-edge research labs, and strong alumni network
+            spanning <strong>30+ countries</strong> ensure that our graduates are globally competitive.
+          </p>
+          <div class="about-highlights">
+            <div class="highlight-item">
+              <span class="hi-icon">🏆</span>
+              <div>
+                <strong>NAAC A+ Grade</strong>
+                <span>National Accreditation</span>
+              </div>
+            </div>
+            <div class="highlight-item">
+              <span class="hi-icon">🌐</span>
+              <div>
+                <strong>Global Partnerships</strong>
+                <span>15+ International MoUs</span>
+              </div>
+            </div>
+            <div class="highlight-item">
+              <span class="hi-icon">🔬</span>
+              <div>
+                <strong>Research Centers</strong>
+                <span>8 Specialized Labs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="about-visual">
+          <div class="about-card-stack">
+            <div class="info-card card-blue">
+              <div class="ic-icon">📅</div>
+              <div class="ic-text">
+                <span class="ic-num">40+</span>
+                <span class="ic-label">Years of Excellence</span>
+              </div>
+            </div>
+            <div class="info-card card-green">
+              <div class="ic-icon">🎯</div>
+              <div class="ic-text">
+                <span class="ic-num">200+</span>
+                <span class="ic-label">Annual Events</span>
+              </div>
+            </div>
+            <div class="info-card card-purple">
+              <div class="ic-icon">🏅</div>
+              <div class="ic-text">
+                <span class="ic-num">500+</span>
+                <span class="ic-label">Awards Won</span>
+              </div>
+            </div>
+            <div class="info-card card-orange">
+              <div class="ic-icon">💼</div>
+              <div class="ic-text">
+                <span class="ic-num">150+</span>
+                <span class="ic-label">Recruiters</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== CAMPUS GALLERY ====== -->
+  <section class="gallery-section" id="gallery">
+    <div class="container">
+      <div class="section-tag">Campus Life</div>
+      <h2 class="section-title">Experience Our Campus</h2>
+      <p class="section-desc">A vibrant campus where learning meets life — explore our facilities, culture, and community.</p>
+      <div class="gallery-grid">
+        <div class="gallery-item big">
+          <img src="/static/images/college_campus.png" alt="College Campus"/>
+          <div class="gallery-label">Main Campus Building</div>
+        </div>
+        <div class="gallery-item">
+          <img src="/static/images/college_library.png" alt="College Library"/>
+          <div class="gallery-label">State-of-the-Art Library</div>
+        </div>
+        <div class="gallery-item">
+          <img src="/static/images/college_events.png" alt="College Events"/>
+          <div class="gallery-label">Annual Cultural Festival</div>
+        </div>
+        <div class="gallery-item">
+          <img src="/static/images/college_achievements.png" alt="College Achievements"/>
+          <div class="gallery-label">Award Ceremony</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== ACHIEVEMENTS SECTION ====== -->
+  <section class="achievements-section" id="achievements">
+    <div class="container">
+      <div class="section-tag">Achievements</div>
+      <h2 class="section-title">Our Pride & Glory</h2>
+      <p class="section-desc">Celebrating milestones, honors, and the relentless pursuit of excellence.</p>
+      <div class="achievements-grid">
+        <div class="achievement-card">
+          <div class="ach-ribbon">🥇</div>
+          <div class="ach-year">2024</div>
+          <h3>Best Engineering College</h3>
+          <p>Ranked among the Top 50 Engineering Colleges in India by NIRF Ranking Framework.</p>
+          <div class="ach-tag">National Ranking</div>
+        </div>
+        <div class="achievement-card featured">
+          <div class="ach-ribbon">🏆</div>
+          <div class="ach-year">2023</div>
+          <h3>NAAC A+ Accreditation</h3>
+          <p>Achieved the highest grade of A+ from the National Assessment and Accreditation Council India.</p>
+          <div class="ach-tag">Accreditation</div>
+        </div>
+        <div class="achievement-card">
+          <div class="ach-ribbon">🌟</div>
+          <div class="ach-year">2023</div>
+          <h3>100% Placement Record</h3>
+          <p>Achieved 100% campus placement for B.Tech batch with average package of ₹8.5 LPA.</p>
+          <div class="ach-tag">Placement</div>
+        </div>
+        <div class="achievement-card">
+          <div class="ach-ribbon">🔬</div>
+          <div class="ach-year">2022</div>
+          <h3>Research Excellence Award</h3>
+          <p>Faculty published 300+ research papers in international journals with high impact factor.</p>
+          <div class="ach-tag">Research</div>
+        </div>
+        <div class="achievement-card">
+          <div class="ach-ribbon">🎨</div>
+          <div class="ach-year">2024</div>
+          <h3>National Hackathon Champions</h3>
+          <p>Students won Smart India Hackathon 2024 in the Software Edition, defeating 5000+ teams.</p>
+          <div class="ach-tag">Innovation</div>
+        </div>
+        <div class="achievement-card">
+          <div class="ach-ribbon">🌍</div>
+          <div class="ach-year">2023</div>
+          <h3>International MoU Partnerships</h3>
+          <p>Signed 15+ MoUs with universities in USA, UK, Germany, Japan for student exchange programs.</p>
+          <div class="ach-tag">Global</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== EVENTS PREVIEW ====== -->
+  <section class="events-preview-section" id="events-preview">
+    <div class="container">
+      <div class="section-tag">Events</div>
+      <h2 class="section-title">Upcoming Highlights</h2>
+      <p class="section-desc">Stay tuned to our portal for the latest events, workshops, and competitions.</p>
+      <div class="events-strip">
+        <div class="event-chip">🎤 Annual Tech Symposium – April 2026</div>
+        <div class="event-chip">🏅 Sports Meet – May 2026</div>
+        <div class="event-chip">🎭 Cultural Fest – June 2026</div>
+        <div class="event-chip">🔬 Science Exhibition – July 2026</div>
+        <div class="event-chip">💡 Startup Conclave – August 2026</div>
+      </div>
+      <div class="events-cta-box">
+        <h3>Manage Events. Book Venues. All in One Place.</h3>
+        <p>Our EduEvent portal gives Admin, HOD, Faculty & Students a unified platform to create, approve, and register for college events seamlessly.</p>
+        <a href="index.html" class="btn-primary large">Enter the Portal →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="welcome-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="nav-logo">🎓</span>
+        <span>EduEvent – College Event & Venue Management</span>
+      </div>
+      <div class="footer-links">
+        <a href="#about">About</a>
+        <a href="#gallery">Campus</a>
+        <a href="#achievements">Achievements</a>
+        <a href="index.html">Portal</a>
+      </div>
+      <div class="footer-copy">© 2026 EduEvent. All rights reserved. | P-04 Project</div>
+    </div>
+  </footer>
+
+  <script src="/static/js/welcome.js"></script>
+</body>
+</html>
+

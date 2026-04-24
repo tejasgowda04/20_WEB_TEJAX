@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}EduEvent{% endblock %} – {{ COLLEGE_NAME }}</title>
+  <meta name="description" content="{% block description %}Unified College Event & Venue Management System{% endblock %}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}"/>
+  {% block extra_css %}{% endblock %}
+
+  <!-- Firebase SDK (only loaded if configured) -->
+  {% if FIREBASE_API_KEY %}
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  {% endif %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% block content %}{% endblock %}
+
+  <!-- Firebase Config -->
+  <script>
+    const FIREBASE_CONFIG = {
+      apiKey: "{{ FIREBASE_API_KEY }}",
+      authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
+      projectId: "{{ FIREBASE_PROJECT_ID }}",
+      storageBucket: "{{ FIREBASE_STORAGE_BUCKET }}",
+      messagingSenderId: "{{ FIREBASE_MESSAGING_SENDER_ID }}",
+      appId: "{{ FIREBASE_APP_ID }}",
+    };
+    const SITE_URL = "{{ SITE_URL }}";
+    const COLLEGE_NAME = "{{ COLLEGE_NAME }}";
+  </script>
+  <script src="{% static 'js/api.js' %}"></script>
+  <script src="{% static 'js/firebase_auth.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
+

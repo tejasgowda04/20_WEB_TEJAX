@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teacher Dashboard – EduEvent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
+</head>
+<body class="dashboard">
+
+  <aside class="sidebar sidebar-teacher" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">📚</div>
+      <div>
+        <div class="sidebar-title">EduEvent</div>
+        <div class="sidebar-subtitle">Teacher Portal</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Overview</div>
+        <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)">
+          <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
+        </div>
+        <div class="nav-item" data-page="branchEvents" onclick="showPage('branchEvents',this)">
+          <span class="nav-icon">🏛️</span><span class="nav-label">My Branch Events</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Explore</div>
+        <div class="nav-item" data-page="allEvents" onclick="showPage('allEvents',this)">
+          <span class="nav-icon">🌐</span><span class="nav-label">All College Events</span>
+        </div>
+        <div class="nav-item" data-page="venues" onclick="showPage('venues',this)">
+          <span class="nav-icon">📍</span><span class="nav-label">Venue Schedule</span>
+        </div>
+        <div class="nav-item" data-page="notifications" onclick="showPage('notifications',this)">
+          <span class="nav-icon">🔔</span><span class="nav-label">Notifications</span>
+          <span class="nav-badge" id="notifBadge" style="display:none">0</span>
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb)" id="tchAvatar">T</div>
+      <div class="user-info">
+        <div class="user-name" id="tchNameSidebar">Teacher</div>
+        <div class="user-role" id="tchBranchSidebar">Branch</div>
+      </div>
+      <button onclick="DB.logout()" class="btn btn-sm btn-outline" style="padding:.3rem .6rem" title="Logout">🚪</button>
+    </div>
+  </aside>
+
+  <div class="main-content" id="mainContent">
+    <div class="topbar">
+      <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="notification-btn" onclick="showPage('notifications',null)">
+          🔔<span class="notif-dot" id="topNotifDot" style="display:none"></span>
+        </button>
+        <span style="color:var(--text-muted);font-size:.8rem" id="topbarDate"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- ═══ DASHBOARD ═══ -->
+      <div id="page-dashboard" class="tab-panel active">
+        <div class="page-header">
+          <h1 id="tchGreet">Welcome 👋</h1>
+          <p id="tchSubtitle">View events in your branch and across the college.</p>
+        </div>
+
+        <div class="stats-grid" id="tchStatsGrid"></div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem">
+          <div>
+            <div class="card" style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(37,99,235,0.05));border-color:rgba(59,130,246,0.3);margin-bottom:1.5rem">
+              <div class="card-header">
+                <div class="card-title">🏛️ My Branch – Upcoming Events</div>
+                <button class="btn btn-sm btn-outline" onclick="showPage('branchEvents',null)">View All</button>
+              </div>
+              <div id="dashBranchEvents"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🌐 Other Branches – Upcoming Events</div>
+                <button class="btn btn-sm btn-outline" onclick="showPage('allEvents',null)">View All</button>
+              </div>
+              <div id="dashOtherEvents"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📅 Today's Schedule</div>
+            </div>
+            <div id="dashToday"></div>
+            <div style="margin-top:1.5rem">
+              <div class="card-title" style="font-size:.9rem;margin-bottom:1rem">📊 Events by Category</div>
+              <div id="dashCategoryBreakdown"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MY BRANCH EVENTS ═══ -->
+      <div id="page-branchEvents" class="tab-panel">
+        <div class="page-header">
+          <h1 id="branchPageTitle">Branch Events</h1>
+          <p>All events organised by your department.</p>
+        </div>
+        <div class="filter-bar">
+          <select id="branchEvTime" onchange="renderBranchEvents()">
+            <option value="">All Time</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="past">Past</option>
+          </select>
+          <select id="branchEvCategory" onchange="renderBranchEvents()">
+            <option value="">All Categories</option>
+            <option>Technical</option><option>Cultural</option><option>Sports</option>
+            <option>Seminar</option><option>Workshop</option>
+          </select>
+        </div>
+        <div id="branchEventsGrid" class="event-grid"></div>
+      </div>
+
+      <!-- ═══ ALL EVENTS ═══ -->
+      <div id="page-allEvents" class="tab-panel">
+        <div class="page-header">
+          <h1>All College Events</h1>
+          <p>Approved events from all departments, with organiser details.</p>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="allEvSearch" placeholder="🔍 Search..." oninput="renderAllEvents()"/>
+          <select id="allEvBranch" onchange="renderAllEvents()">
+            <option value="">All Branches</option>
+          </select>
+          <select id="allEvTime" onchange="renderAllEvents()">
+            <option value="">All Time</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="past">Past</option>
+          </select>
+          <select id="allEvCategory" onchange="renderAllEvents()">
+            <option value="">All Categories</option>
+            <option>Technical</option><option>Cultural</option><option>Sports</option>
+            <option>Seminar</option><option>Workshop</option>
+          </select>
+        </div>
+        <!-- Table with organiser info prominently shown -->
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Event Name</th>
+              <th>Organizing Branch</th>
+              <th>Organiser</th>
+              <th>Date</th>
+              <th>Venue</th>
+              <th>Category</th>
+              <th>Status</th>
+            </tr></thead>
+            <tbody id="allEvBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══ VENUE SCHEDULE ═══ -->
+      <div id="page-venues" class="tab-panel">
+        <div class="page-header">
+          <h1>Venue Schedule</h1>
+          <p>See which events are booked at each venue and when.</p>
+        </div>
+        <div id="venueScheduleGrid"></div>
+      </div>
+
+      <!-- ═══ NOTIFICATIONS ═══ -->
+      <div id="page-notifications" class="tab-panel">
+        <div class="page-header"><h1>Notifications</h1></div>
+        <div class="card" style="padding:0"><div id="notifList"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Event Detail Modal -->
+  <div class="modal-overlay" id="eventDetailModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <div class="modal-title" id="evDetailTitle">Event Details</div>
+        <button class="modal-close" onclick="document.getElementById('eventDetailModal').classList.remove('open')">✕</button>
+      </div>
+      <div id="evDetailBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="document.getElementById('eventDetailModal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/db.js"></script>
+{% verbatim %}
+  <script>
+  // ── Auth Guard ──────────────────────────────────────────────────────────
+  let user = null;
+  function _initUser() {
+    user = DB.requireAuth('teacher');
+    if (!user) return;
+
+    document.getElementById('tchAvatar').textContent      = user.name[0];
+    document.getElementById('tchNameSidebar').textContent = user.name;
+    document.getElementById('tchBranchSidebar').textContent = user.branch;
+    document.getElementById('tchGreet').textContent       = `Welcome, ${user.name.split(' ')[0]} 👋`;
+    document.getElementById('tchSubtitle').textContent    = `${user.branch} · ${user.subject||'Faculty'}`;
+    document.getElementById('branchPageTitle').textContent= `${user.branch} – Events`;
+    document.getElementById('topbarDate').textContent     = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+
+    // Populate filters
+    const allEvBranch = document.getElementById('allEvBranch');
+    DB.BRANCHES.forEach(b=>{const o=document.createElement('option');o.value=o.textContent=b;allEvBranch.appendChild(o);});
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    document.getElementById('mainContent').classList.toggle('expanded');
+  }
+
+  const pageTitles = {
+    dashboard:'Dashboard', branchEvents:'My Branch Events',
+    allEvents:'All College Events', venues:'Venue Schedule', notifications:'Notifications'
+  };
+
+  function showPage(name, navEl) {
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    if (navEl) navEl.classList.add('active');
+    else { const el=document.querySelector(`[data-page="${name}"]`);if(el)el.classList.add('active'); }
+    document.getElementById('pageTitle').textContent = pageTitles[name]||name;
+    renderPage(name);
+  }
+
+  function renderPage(name) {
+    const renders = {
+      dashboard:renderDashboard, branchEvents:renderBranchEvents,
+      allEvents:renderAllEvents, venues:renderVenues, notifications:renderNotifications
+    };
+    if (renders[name]) renders[name]();
+  }
+
+  function fmtDate(d) { return d?new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—'; }
+
+  const catColors = {
+    'Technical':'#667eea','Cultural':'#f59e0b','Sports':'#10b981',
+    'Seminar':'#8b5cf6','Workshop':'#3b82f6','Other':'#94a3b8'
+  };
+
+  function updateBadges() {
+    const unread = DB.getNotifications(user.id).filter(n=>!n.read).length;
+    const nb = document.getElementById('notifBadge');
+    nb.textContent=unread; nb.style.display=unread?'':'none';
+    document.getElementById('topNotifDot').style.display=unread?'':'none';
+  }
+
+  // ── Dashboard ──────────────────────────────────────────────────────────
+  function renderDashboard() {
+    const allApproved = DB.getEvents({status:'approved'});
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const myBranch  = allApproved.filter(e=>e.branch===user.branch);
+    const otherBranch = allApproved.filter(e=>e.branch!==user.branch);
+    const upcoming  = allApproved.filter(e=>new Date(e.date)>=today);
+    const myUpcoming = myBranch.filter(e=>new Date(e.date)>=today);
+    const todayEvents = allApproved.filter(e=>e.date<=todayStr&&(e.endDate||e.date)>=todayStr);
+
+    // Stats
+    document.getElementById('tchStatsGrid').innerHTML = [
+      {icon:'🏛️',label:'My Branch Events',val:myBranch.length,       bg:'rgba(59,130,246,0.25)'},
+      {icon:'📅',label:'Upcoming in Branch',val:myUpcoming.length,    bg:'rgba(16,185,129,0.25)'},
+      {icon:'🌐',label:'Total College Events',val:allApproved.length, bg:'rgba(139,92,246,0.25)'},
+      {icon:'📅',label:'Events Happening Today',val:todayEvents.length,bg:'rgba(245,158,11,0.25)'},
+    ].map(s=>`<div class="stat-card">
+      <div class="stat-icon" style="background:${s.bg}">${s.icon}</div>
+      <div class="stat-info"><h3>${s.val}</h3><p>${s.label}</p></div>
+    </div>`).join('');
+
+    // My branch upcoming
+    const beEl = document.getElementById('dashBranchEvents');
+    const myUp = myBranch.filter(e=>new Date(e.date)>=today);
+    if (!myUp.length) { beEl.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><p>No upcoming events from your branch.</p></div>`; }
+    else {
+      beEl.innerHTML = myUp.slice(0,4).map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.7rem 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDetail('${e.id}')">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">${e.title}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem">📅 ${fmtDate(e.date)} · 📍 ${e.venueName}</div>
+            <div style="font-size:.72rem;color:#93c5fd;margin-top:.15rem">👤 Organiser: ${e.organizer}</div>
+          </div>
+          <span class="badge badge-upcoming" style="background:${catColors[e.category]||'#94a3b8'}22;color:${catColors[e.category]||'#94a3b8'}">${e.category||'Event'}</span>
+        </div>`).join('');
+    }
+
+    // Other branches upcoming
+    const oeEl = document.getElementById('dashOtherEvents');
+    const otherUp = otherBranch.filter(e=>new Date(e.date)>=today);
+    if (!otherUp.length) { oeEl.innerHTML=`<div class="empty-state"><div class="empty-icon">🌐</div><p>No upcoming events from other branches.</p></div>`; }
+    else {
+      oeEl.innerHTML = otherUp.slice(0,5).map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.7rem 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDetail('${e.id}')">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">${e.title}</div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.2rem">
+              <span style="font-size:.72rem;background:rgba(102,126,234,0.15);color:#a5b4fc;padding:.1rem .5rem;border-radius:5px">${e.branch}</span>
+              <span style="font-size:.72rem;color:var(--text-muted)">📅 ${fmtDate(e.date)}</span>
+              <span style="font-size:.72rem;color:#93c5fd">👤 ${e.organizer}</span>
+            </div>
+          </div>
+          <span class="badge badge-upcoming">${e.category||'Event'}</span>
+        </div>`).join('');
+    }
+
+    // Today's events
+    const tdEl = document.getElementById('dashToday');
+    if (!todayEvents.length) { tdEl.innerHTML=`<div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:.85rem">No events today 🌟</div>`; }
+    else {
+      tdEl.innerHTML = todayEvents.map(e=>`
+        <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:.75rem;margin-bottom:.5rem">
+          <div style="font-weight:600;font-size:.875rem">${e.title}</div>
+          <div style="font-size:.75rem;color:#93c5fd;margin-top:.2rem">📍 ${e.venueName}</div>
+          <div style="font-size:.72rem;color:var(--text-muted);margin-top:.1rem">🏛️ ${e.branch} · 👤 ${e.organizer}</div>
+        </div>`).join('');
+    }
+
+    // Category breakdown
+    const cats = ['Technical','Cultural','Sports','Seminar','Workshop'];
+    const cbEl = document.getElementById('dashCategoryBreakdown');
+    const catData = cats.map(c=>({c,n:allApproved.filter(e=>e.category===c).length}));
+    const maxN = Math.max(...catData.map(d=>d.n),1);
+    cbEl.innerHTML = catData.map(({c,n})=>`
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem">
+        <div style="width:75px;font-size:.75rem;color:var(--text-muted);text-align:right">${c}</div>
+        <div style="flex:1;background:var(--border);border-radius:99px;height:8px;overflow:hidden">
+          <div style="height:100%;background:${catColors[c]};border-radius:99px;width:${(n/maxN*100).toFixed(1)}%;transition:width .8s ease"></div>
+        </div>
+        <div style="width:20px;font-size:.75rem;font-weight:600">${n}</div>
+      </div>`).join('');
+
+    updateBadges();
+  }
+
+  // ── Branch Events ──────────────────────────────────────────────────────
+  function renderBranchEvents() {
+    const time     = document.getElementById('branchEvTime').value;
+    const category = document.getElementById('branchEvCategory').value;
+    const today    = new Date();
+    let events = DB.getEvents({status:'approved',branch:user.branch});
+    if (time==='upcoming') events = events.filter(e=>new Date(e.date)>=today);
+    if (time==='past')     events = events.filter(e=>new Date(e.date)<today);
+    if (category) events = events.filter(e=>e.category===category);
+
+    const el = document.getElementById('branchEventsGrid');
+    if (!events.length) { el.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><h3>No events found</h3></div>`; return; }
+
+    el.innerHTML = events.map(e=>{
+      const isPast = new Date(e.date)<today;
+      return `
+        <div class="event-card fade-in" onclick="openDetail('${e.id}')" style="cursor:pointer">
+          <div class="event-card-accent" style="background:${catColors[e.category]||'#3b82f6'}"></div>
+          <div class="event-card-header">
+            <div class="event-card-title">${e.title}</div>
+            <span class="badge ${isPast?'badge-past':'badge-upcoming'}">${isPast?'Past':'Upcoming'}</span>
+          </div>
+          <div class="event-meta">
+            <div class="event-meta-item"><span class="event-meta-icon">📅</span>${fmtDate(e.date)}${e.endDate&&e.endDate!==e.date?' – '+fmtDate(e.endDate):''}</div>
+            <div class="event-meta-item"><span class="event-meta-icon">📍</span>${e.venueName}</div>
+            <div class="event-meta-item"><span class="event-meta-icon">👤</span>${e.organizer}</div>
+            <div class="event-meta-item"><span class="event-meta-icon">👥</span>~${e.expectedAttendees||'N/A'} attendees</div>
+          </div>
+          <p style="font-size:.8rem;color:var(--text-muted);line-height:1.5">${e.description.slice(0,100)}${e.description.length>100?'...':''}</p>
+          <div class="event-card-footer">
+            <span class="badge badge-upcoming" style="background:${catColors[e.category]||'#3b82f6'}22;color:${catColors[e.category]||'#3b82f6'}">${e.category||'Event'}</span>
+            <span style="font-size:.75rem;color:var(--text-muted)">Organised by: <strong style="color:var(--text-primary)">${e.branch}</strong></span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── All Events ─────────────────────────────────────────────────────────
+  function renderAllEvents() {
+    const search   = document.getElementById('allEvSearch').value.toLowerCase();
+    const branch   = document.getElementById('allEvBranch').value;
+    const time     = document.getElementById('allEvTime').value;
+    const category = document.getElementById('allEvCategory').value;
+    const today    = new Date(); today.setHours(0,0,0,0);
+    let events = DB.getEvents({status:'approved'});
+    if (search)   events = events.filter(e=>e.title.toLowerCase().includes(search)||e.branch.toLowerCase().includes(search)||e.organizer.toLowerCase().includes(search));
+    if (branch)   events = events.filter(e=>e.branch===branch);
+    if (category) events = events.filter(e=>e.category===category);
+    if (time==='upcoming') events = events.filter(e=>new Date(e.date)>=today);
+    if (time==='past')     events = events.filter(e=>new Date(e.date)<today);
+
+    const tbody = document.getElementById('allEvBody');
+    if (!events.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No events found.</p></div></td></tr>`; return; }
+    tbody.innerHTML = events.map(e=>{
+      const isPast = new Date(e.date)<today;
+      const isMyBranch = e.branch===user.branch;
+      return `<tr ${isMyBranch?'style="background:rgba(59,130,246,0.05)"':''} onclick="openDetail('${e.id}')" style="cursor:pointer">
+        <td>
+          <div style="font-weight:600">${e.title}</div>
+          ${isMyBranch?`<span style="font-size:.68rem;background:rgba(59,130,246,0.2);color:#93c5fd;padding:.1rem .5rem;border-radius:5px;border:1px solid rgba(59,130,246,0.3)">My Branch</span>`:''}
+        </td>
+        <td>
+          <div style="font-weight:600;font-size:.875rem;color:#a5b4fc">${e.branch}</div>
+        </td>
+        <td>
+          <div style="font-weight:600;font-size:.875rem">${e.organizer}</div>
+          <div style="font-size:.72rem;color:var(--text-muted)">${e.branch} Dept.</div>
+        </td>
+        <td>${fmtDate(e.date)}</td>
+        <td>${e.venueName}</td>
+        <td><span class="badge badge-upcoming" style="background:${catColors[e.category]||'#94a3b8'}22;color:${catColors[e.category]||'#94a3b8'}">${e.category||'—'}</span></td>
+        <td><span class="badge ${isPast?'badge-past':'badge-upcoming'}">${isPast?'Past':'Upcoming'}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Venue Schedule ─────────────────────────────────────────────────────
+  function renderVenues() {
+    const venues = DB.get(DB.KEYS.VENUES);
+    const events  = DB.getEvents({status:'approved'});
+    const today   = new Date(); today.setHours(0,0,0,0);
+    const el = document.getElementById('venueScheduleGrid');
+    el.innerHTML = venues.map(v=>{
+      const vEvents = events.filter(e=>e.venueId===v.id).sort((a,b)=>new Date(a.date)-new Date(b.date));
+      const upcoming = vEvents.filter(e=>new Date(e.date)>=today);
+      const past     = vEvents.filter(e=>new Date(e.date)<today);
+      const todayEv  = vEvents.filter(e=>e.date===today.toISOString().split('T')[0]);
+      return `
+        <div class="card" style="margin-bottom:1.5rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
+            <div>
+              <h3 style="font-size:1.05rem;font-weight:700">📍 ${v.name}</h3>
+              <div style="font-size:.8rem;color:var(--text-muted);margin-top:.2rem">Capacity: ${v.capacity.toLocaleString()} · ${v.description}</div>
+            </div>
+            <div style="display:flex;gap:.75rem">
+              <div style="text-align:center">
+                <div style="font-size:1.4rem;font-weight:800;color:#3b82f6">${upcoming.length}</div>
+                <div style="font-size:.65rem;color:var(--text-muted)">Upcoming</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:1.4rem;font-weight:800;color:#94a3b8">${past.length}</div>
+                <div style="font-size:.65rem;color:var(--text-muted)">Past</div>
+              </div>
+            </div>
+          </div>
+          ${todayEv.length?`<div class="alert alert-warning" style="margin-bottom:1rem">📅 <strong>${todayEv.length} event${todayEv.length>1?'s':''} today</strong> at this venue.</div>`:''}
+          ${vEvents.length===0?`<div class="empty-state" style="padding:2rem"><div class="empty-icon">🗓️</div><p>No events booked at this venue.</p></div>`:`
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Event</th><th>Branch</th><th>Organiser</th><th>Date</th><th>Status</th></tr></thead>
+              <tbody>${vEvents.map(e=>`
+                <tr ${new Date(e.date)>=today?'':'style="opacity:.6"'}>
+                  <td style="font-weight:600">${e.title}</td>
+                  <td><span style="font-size:.75rem;background:rgba(102,126,234,0.15);color:#a5b4fc;padding:.2rem .5rem;border-radius:5px">${e.branch}</span></td>
+                  <td>${e.organizer}</td>
+                  <td>${fmtDate(e.date)}</td>
+                  <td><span class="badge ${new Date(e.date)>=today?'badge-upcoming':'badge-past'}">${new Date(e.date)>=today?'Upcoming':'Past'}</span></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`}
+        </div>`;
+    }).join('');
+  }
+
+  // ── Notifications ──────────────────────────────────────────────────────
+  function renderNotifications() {
+    const notifs = DB.getNotifications(user.id);
+    const el = document.getElementById('notifList');
+    if (!notifs.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications yet.</p></div>`; return; }
+    el.innerHTML = notifs.map(n=>`
+      <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);cursor:pointer" onclick="DB.markNotifRead('${n.id}');renderNotifications()">
+        <div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${n.read?'transparent':'#3b82f6'}"></div>
+        <div>
+          <div style="font-size:.85rem;line-height:1.5;${n.read?'color:var(--text-muted)':''}">${n.message}</div>
+          <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
+        </div>
+      </div>`).join('');
+    updateBadges();
+  }
+
+  // ── Event Detail ───────────────────────────────────────────────────────
+  function openDetail(id) {
+    const e = DB.getEvents().find(ev=>ev.id===id);
+    if (!e) return;
+    const today = new Date(); const isPast=new Date(e.date)<today;
+    document.getElementById('evDetailTitle').textContent = e.title;
+    document.getElementById('evDetailBody').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:.85rem;font-size:.9rem">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <span class="badge ${isPast?'badge-past':'badge-upcoming'}">${isPast?'Past':'Upcoming'}</span>
+          <span class="badge badge-upcoming" style="background:${catColors[e.category]||'#94a3b8'}22;color:${catColors[e.category]||'#94a3b8'}">${e.category||'Event'}</span>
+        </div>
+        <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:1rem">
+          <div style="font-size:.7rem;color:#93c5fd;text-transform:uppercase;font-weight:600;margin-bottom:.5rem">Organizing Department</div>
+          <div style="font-size:1rem;font-weight:700">${e.branch}</div>
+          <div style="font-size:.85rem;color:var(--text-secondary);margin-top:.25rem">👤 ${e.organizer}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div><strong>Date:</strong><br><span style="color:var(--text-secondary)">${fmtDate(e.date)}${e.endDate&&e.endDate!==e.date?' – '+fmtDate(e.endDate):''}</span></div>
+          <div><strong>Venue:</strong><br><span style="color:var(--text-secondary)">${e.venueName}</span></div>
+          <div><strong>Expected Attendees:</strong><br><span style="color:var(--text-secondary)">~${e.expectedAttendees||'N/A'}</span></div>
+        </div>
+        <div><strong>Description:</strong><br><p style="color:var(--text-secondary);line-height:1.7;margin-top:.35rem">${e.description}</p></div>
+      </div>`;
+    document.getElementById('eventDetailModal').classList.add('open');
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  function _boot() { _initUser(); updateBadges(); renderDashboard(); }
+  if (DB._cache.loaded) _boot();
+  else window.addEventListener('db-ready', _boot);
+  </script>
+{% endverbatim %}
+</body>
+</html>
+

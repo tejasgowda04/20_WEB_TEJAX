@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Login{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-page { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:2rem; }
+  .auth-card {
+    background:var(--bg-card); border:1px solid var(--border); border-radius:20px;
+    padding:2.5rem; max-width:440px; width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  }
+  .auth-logo { text-align:center; font-size:2rem; margin-bottom:.5rem; }
+  .auth-title { text-align:center; font-size:1.3rem; font-weight:700; margin-bottom:.3rem; color:var(--text-primary); }
+  .auth-subtitle { text-align:center; font-size:.8rem; color:var(--text-muted); margin-bottom:2rem; }
+  .role-tag {
+    display:inline-flex; padding:.25rem .75rem; border-radius:20px; font-size:.75rem;
+    font-weight:600; text-transform:uppercase;
+  }
+  .role-tag.admin { background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3); }
+  .role-tag.hod { background:rgba(139,92,246,0.15); color:#8b5cf6; border:1px solid rgba(139,92,246,0.3); }
+  .role-tag.student { background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); }
+  .role-tag.teacher { background:rgba(59,130,246,0.15); color:#3b82f6; border:1px solid rgba(59,130,246,0.3); }
+  .demo-box {
+    background:rgba(102,126,234,0.08); border:1px solid rgba(102,126,234,0.2);
+    border-radius:10px; padding:.75rem; font-size:.75rem; color:var(--text-muted);
+    margin-bottom:1.5rem;
+  }
+  .demo-box strong { color:var(--text-secondary); }
+  .back-link { display:block; text-align:center; margin-top:1.5rem; color:var(--text-muted); font-size:.8rem; }
+  .back-link a { color:var(--primary); text-decoration:none; }
+  .back-link a:hover { text-decoration:underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div class="auth-logo" id="authLogo">🔐</div>
+  <div class="auth-title">Login to EduEvent</div>
+  <div class="auth-subtitle">
+    Logging in as: <span class="role-tag {{ role }}" id="roleTag">{{ role|title }}</span>
+  </div>
+
+  <div class="demo-box" id="demoHints">
+    <!-- Demo hints filled by JS -->
+  </div>
+
+  <form id="loginForm" onsubmit="return handleLogin(event)">
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" placeholder="Enter your email" required autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter your password" required autocomplete="current-password"/>
+    </div>
+    <div id="loginError" class="error-msg"></div>
+    <div id="loginSuccess" class="success-msg"></div>
+    <button type="submit" class="btn btn-primary btn-full" id="loginBtn">🔑 Login</button>
+  </form>
+
+  <div class="back-link">
+    <a href="{% url 'index' %}">← Choose different role</a> &nbsp;|&nbsp;
+    <a href="{% url 'register' %}">Register</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const role = "{{ role }}";
+  const logos = { admin: '🛡️', hod: '🏛️', student: '🎒', teacher: '📚' };
+  const dashUrls = {
+    admin: '{% url "admin_dashboard" %}',
+    hod: '{% url "hod_dashboard" %}',
+    student: '{% url "student_dashboard" %}',
+    teacher: '{% url "teacher_dashboard" %}',
+  };
+
+  document.getElementById('authLogo').textContent = logos[role] || '🔐';
+
+  // Demo hints
+  const hints = {
+    admin: '<strong>Demo:</strong> admin@college.edu / admin123',
+    hod: '<strong>Demo:</strong> hod.cs@college.edu / hod123',
+    student: '<strong>Demo:</strong> amit@student.edu / stu123',
+    teacher: '<strong>Demo:</strong> anita@college.edu / tch123',
+  };
+  document.getElementById('demoHints').innerHTML = hints[role] || '';
+
+  // Init Firebase
+  initFirebase(FIREBASE_CONFIG);
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const errEl = document.getElementById('loginError');
+    const sucEl = document.getElementById('loginSuccess');
+    const btn = document.getElementById('loginBtn');
+
+    hideMsg(errEl);
+    hideMsg(sucEl);
+    btn.disabled = true;
+    btn.textContent = '⏳ Logging in...';
+
+    try {
+      const result = await firebaseLogin(email, password, role);
+      showSuccess(sucEl, '✅ Login successful! Redirecting...');
+      setTimeout(() => { window.location.href = dashUrls[role] || '/'; }, 800);
+    } catch (err) {
+      showError(errEl, err.message);
+      btn.disabled = false;
+      btn.textContent = '🔑 Login';
+    }
+    return false;
+  }
+</script>
+{% endblock %}
+

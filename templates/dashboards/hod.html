@@ -1,0 +1,296 @@
+{% extends "dashboards/base_dashboard.html" %}
+{% load static %}
+
+{% block title %}HOD Dashboard{% endblock %}
+{% block sidebar_role %}hod{% endblock %}
+{% block sidebar_icon %}🏛️{% endblock %}
+{% block sidebar_subtitle %}HOD Portal{% endblock %}
+{% block avatar_style %}background:linear-gradient(135deg,#8b5cf6,#7c3aed){% endblock %}
+{% block dash_role %}hod{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-section">
+  <div class="nav-section-title">My Department</div>
+  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></div>
+  <div class="nav-item" data-page="requestEvent" onclick="showPage('requestEvent',this)"><span class="nav-icon">➕</span><span class="nav-label">Request Event</span></div>
+  <div class="nav-item" data-page="myEvents" onclick="showPage('myEvents',this)"><span class="nav-icon">📋</span><span class="nav-label">My Events</span></div>
+  <div class="nav-item" data-page="suggestions" onclick="showPage('suggestions',this)"><span class="nav-icon">💡</span><span class="nav-label">Admin Suggestions</span><span class="nav-badge" id="sugBadge" style="display:none">0</span></div>
+</div>
+<div class="nav-section">
+  <div class="nav-section-title">Coordination</div>
+  <div class="nav-item" data-page="coordinators" onclick="showPage('coordinators',this)"><span class="nav-icon">🎓</span><span class="nav-label">Coordinator Requests</span><span class="nav-badge" id="coordBadge" style="display:none">0</span></div>
+  <div class="nav-item" data-page="allEvents" onclick="showPage('allEvents',this)"><span class="nav-icon">🌐</span><span class="nav-label">All College Events</span></div>
+  <div class="nav-item" data-page="calendar" onclick="showPage('calendar',this)"><span class="nav-icon">🗓️</span><span class="nav-label">College Calendar</span></div>
+  <div class="nav-item" data-page="notifications" onclick="showPage('notifications',this)"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span><span class="nav-badge" id="notifBadge" style="display:none">0</span></div>
+</div>
+{% endblock %}
+
+{% block pages %}
+<!-- Dashboard -->
+<div id="page-dashboard" class="tab-panel active">
+  <div class="page-header"><h1 id="hodGreet">HOD Dashboard</h1><p id="hodSubtitle">Manage your department events.</p></div>
+  <div class="stats-grid" id="hodStats"></div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-top:1.5rem">
+    <div class="card"><div class="card-header"><div class="card-title">📋 My Recent Events</div></div><div id="dashMyEvents"></div></div>
+    <div class="card"><div class="card-header"><div class="card-title">📍 Venue Availability (Today)</div></div><div id="dashVenues"></div></div>
+  </div>
+</div>
+
+<!-- Request Event (with real-time conflict check) -->
+<div id="page-requestEvent" class="tab-panel">
+  <div class="page-header"><h1>➕ Request New Event</h1><p>Submit an event request. Venue conflicts are checked in real-time!</p></div>
+  <div class="card" style="max-width:700px">
+    <div class="form-group"><label>Use Template (Optional)</label><select id="tplSelect" onchange="loadTemplate()"><option value="">Start from scratch...</option></select></div>
+    <div class="form-group"><label>Event Title</label><input type="text" id="reqTitle" placeholder="e.g. Annual Tech Symposium"/></div>
+    <div class="form-group"><label>Description</label><textarea id="reqDesc" rows="3" placeholder="Describe the event..."></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="form-group"><label>Start Date</label><input type="date" id="reqDate" onchange="checkLiveConflicts()"/></div>
+      <div class="form-group"><label>End Date</label><input type="date" id="reqEndDate" onchange="checkLiveConflicts()"/></div>
+      <div class="form-group"><label>Venue</label><select id="reqVenue" onchange="checkLiveConflicts()"></select></div>
+      <div class="form-group"><label>Category</label><select id="reqCat"><option>Technical</option><option>Cultural</option><option>Sports</option><option>Seminar</option><option>Workshop</option><option>Other</option></select></div>
+      <div class="form-group"><label>Expected Attendees</label><input type="number" id="reqAttendees" value="100"/></div>
+      <div class="form-group"><label>Organizer Name</label><input type="text" id="reqOrganizer" placeholder="Your name"/></div>
+    </div>
+
+    <!-- REAL-TIME CONFLICT ALERT -->
+    <div id="conflictAlert" class="alert alert-danger" style="display:none;margin:1rem 0">
+      <strong>⚠️ Venue Conflict Detected!</strong>
+      <div id="conflictDetails" style="margin-top:.5rem;font-size:.82rem"></div>
+    </div>
+    <div id="noConflictAlert" class="alert alert-success" style="display:none;margin:1rem 0">
+      ✅ No conflicts – this venue and date are available!
+    </div>
+
+    <div style="display:flex;align-items:center;gap:.75rem;margin-top:1rem">
+      <label style="font-size:.85rem;color:var(--text-muted)"><input type="checkbox" id="reqPublic"/> Make this a public event (visible without login)</label>
+    </div>
+    <div id="reqError" class="error-msg"></div>
+    <div id="reqSuccess" class="success-msg"></div>
+    <div style="margin-top:1.5rem">
+      <button class="btn btn-primary" onclick="submitEventRequest()">🚀 Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- My Events -->
+<div id="page-myEvents" class="tab-panel">
+  <div class="page-header"><h1>My Events</h1></div>
+  <div id="myEventsList"></div>
+</div>
+
+<!-- Admin Suggestions -->
+<div id="page-suggestions" class="tab-panel">
+  <div class="page-header"><h1>💡 Admin Date Suggestions</h1><p>Review suggested dates from the admin.</p></div>
+  <div id="suggestionsList"></div>
+</div>
+
+<!-- Coordinator Requests -->
+<div id="page-coordinators" class="tab-panel">
+  <div class="page-header"><h1>🎓 Coordinator Applications</h1><p>Students who want to coordinate your events.</p></div>
+  <div id="coordList"></div>
+</div>
+
+<!-- All College Events -->
+<div id="page-allEvents" class="tab-panel">
+  <div class="page-header"><h1>All College Events</h1></div>
+  <div class="filter-bar"><input type="text" id="allSearch" placeholder="🔍 Search..." oninput="renderAllEvents()"/><select id="allBranch" onchange="renderAllEvents()"><option value="">All Branches</option></select></div>
+  <div class="table-container"><table><thead><tr><th>Event</th><th>Branch</th><th>Date</th><th>Venue</th><th>Category</th></tr></thead><tbody id="allEvBody"></tbody></table></div>
+</div>
+
+<!-- Calendar -->
+<div id="page-calendar" class="tab-panel">
+  <div class="page-header"><h1>🗓️ College Calendar</h1></div>
+  <div id="calList"></div>
+</div>
+
+<!-- Notifications -->
+<div id="page-notifications" class="tab-panel">
+  <div class="page-header"><h1>Notifications</h1></div>
+  <div class="card" style="padding:0"><div id="notifList"></div></div>
+</div>
+{% endblock %}
+
+{% block dashboard_js %}
+<script>
+const pageTitles={dashboard:'Dashboard',requestEvent:'Request Event',myEvents:'My Events',suggestions:'Admin Suggestions',coordinators:'Coordinator Requests',allEvents:'All Events',calendar:'College Calendar',notifications:'Notifications'};
+const catColors={'Technical':'#667eea','Cultural':'#f59e0b','Sports':'#10b981','Seminar':'#8b5cf6','Workshop':'#3b82f6','Other':'#94a3b8'};
+const calTypeColors={'holiday':'#f59e0b','exam':'#ef4444','semester_start':'#10b981','semester_end':'#3b82f6','vacation':'#8b5cf6','event':'#667eea','other':'#94a3b8'};
+
+let venuesCache=[];
+
+async function initDashboard(){
+  document.getElementById('hodGreet').textContent=`Welcome, ${currentUser.name.split(' ')[0]} 🏛️`;
+  document.getElementById('hodSubtitle').textContent=`${currentUser.branch} · Head of Department`;
+  document.getElementById('reqOrganizer').value=currentUser.name;
+
+  const vd=await API.getVenues(); venuesCache=vd.venues;
+  const vs=document.getElementById('reqVenue');
+  vs.innerHTML='<option value="">Select venue...</option>';
+  venuesCache.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=`${v.name} (Cap: ${v.capacity})`;vs.appendChild(o);});
+
+  const bd=await API.getBranches();
+  const bf=document.getElementById('allBranch');
+  bd.branches.forEach(b=>{const o=document.createElement('option');o.value=o.textContent=b;bf.appendChild(o);});
+
+  // Load templates
+  try {
+    const td=await API.getTemplates();
+    const ts=document.getElementById('tplSelect');
+    td.templates.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=`${t.title} (${t.frequency_display})`;o.dataset.tpl=JSON.stringify(t);ts.appendChild(o);});
+  } catch(e){}
+
+  renderDashboard();
+}
+
+function renderPage(name){
+  const fns={dashboard:renderDashboard,myEvents:renderMyEvents,suggestions:renderSuggestions,coordinators:renderCoords,allEvents:renderAllEvents,calendar:renderCalendar,notifications:renderNotifications};
+  if(fns[name])fns[name]();
+}
+
+async function renderDashboard(){
+  const evData=await API.getEvents({hod_id:currentUser.id});
+  const coordData=await API.getCoordinatorRequests();
+  const pending=evData.events.filter(e=>e.status==='pending').length;
+  const approved=evData.events.filter(e=>e.status==='approved').length;
+  const withSuggestions=evData.events.filter(e=>e.suggested_date).length;
+  const pendingCoords=coordData.requests.filter(r=>r.status==='pending').length;
+
+  document.getElementById('hodStats').innerHTML=[
+    {icon:'📋',val:evData.events.length,label:'Total Events',bg:'rgba(139,92,246,0.25)'},
+    {icon:'⏳',val:pending,label:'Pending',bg:'rgba(245,158,11,0.25)'},
+    {icon:'✅',val:approved,label:'Approved',bg:'rgba(16,185,129,0.25)'},
+    {icon:'🎓',val:pendingCoords,label:'Coord. Requests',bg:'rgba(59,130,246,0.25)'},
+  ].map(s=>`<div class="stat-card"><div class="stat-icon" style="background:${s.bg}">${s.icon}</div><div class="stat-info"><h3>${s.val}</h3><p>${s.label}</p></div></div>`).join('');
+
+  // Badges
+  const sb=document.getElementById('sugBadge');sb.textContent=withSuggestions;sb.style.display=withSuggestions?'':'none';
+  const cb=document.getElementById('coordBadge');cb.textContent=pendingCoords;cb.style.display=pendingCoords?'':'none';
+
+  // Recent events
+  const me=document.getElementById('dashMyEvents');
+  if(!evData.events.length){me.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><p>No events yet. Create your first event request!</p></div>';}
+  else{me.innerHTML=evData.events.slice(0,5).map(e=>`<div style="display:flex;justify-content:space-between;padding:.65rem 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:600;font-size:.85rem">${e.title}</div><div style="font-size:.72rem;color:var(--text-muted)">${fmtDate(e.date)} · ${e.venue_name}</div></div>${statusBadge(e.status)}</div>`).join('');}
+
+  // Venues
+  const vd=await API.getVenues();
+  document.getElementById('dashVenues').innerHTML=vd.venues.map(v=>`<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="font-size:.85rem">${v.name}</span><span style="font-size:.8rem;color:${v.is_available?'#10b981':'#ef4444'}">${v.is_available?'✅ Free':'🔴 Booked'}</span></div>`).join('');
+
+  updateNotifBadge();
+}
+
+// ── REAL-TIME CONFLICT CHECK ────────────────────────────────────
+let conflictTimer=null;
+async function checkLiveConflicts(){
+  clearTimeout(conflictTimer);
+  conflictTimer=setTimeout(async()=>{
+    const venueId=document.getElementById('reqVenue').value;
+    const date=document.getElementById('reqDate').value;
+    const endDate=document.getElementById('reqEndDate').value;
+    const warn=document.getElementById('conflictAlert');
+    const ok=document.getElementById('noConflictAlert');
+    warn.style.display='none'; ok.style.display='none';
+    if(!venueId||!date)return;
+    try{
+      const data=await API.checkConflicts(venueId,date,endDate);
+      if(data.has_conflicts){
+        warn.style.display='flex';
+        document.getElementById('conflictDetails').innerHTML=data.conflicts.map(c=>`<div>⚡ <strong>${c.title}</strong> (${c.branch}) on ${fmtDate(c.date)} – ${statusBadge(c.status)}</div>`).join('');
+      }else{ok.style.display='flex';}
+    }catch(e){}
+  },400);
+}
+
+function loadTemplate(){
+  const sel=document.getElementById('tplSelect');
+  const opt=sel.options[sel.selectedIndex];
+  if(!opt.dataset.tpl)return;
+  const t=JSON.parse(opt.dataset.tpl);
+  document.getElementById('reqTitle').value=t.title;
+  document.getElementById('reqDesc').value=t.description;
+  document.getElementById('reqCat').value=t.category;
+  document.getElementById('reqAttendees').value=t.expected_attendees;
+  if(t.default_venue_id)document.getElementById('reqVenue').value=t.default_venue_id;
+}
+
+async function submitEventRequest(){
+  const errEl=document.getElementById('reqError');
+  const sucEl=document.getElementById('reqSuccess');
+  hideMsg(errEl);hideMsg(sucEl);
+  const data={
+    title:document.getElementById('reqTitle').value.trim(),
+    description:document.getElementById('reqDesc').value.trim(),
+    date:document.getElementById('reqDate').value,
+    end_date:document.getElementById('reqEndDate').value||null,
+    venue_id:document.getElementById('reqVenue').value,
+    category:document.getElementById('reqCat').value,
+    expected_attendees:parseInt(document.getElementById('reqAttendees').value),
+    organizer:document.getElementById('reqOrganizer').value.trim(),
+    branch:currentUser.branch,
+    is_public:document.getElementById('reqPublic').checked,
+  };
+  if(!data.title||!data.date||!data.venue_id){showError(errEl,'Fill all required fields');return;}
+  try{
+    await API.createEvent(data);
+    showSuccess(sucEl,'✅ Event request submitted! Awaiting admin approval.');
+    document.getElementById('reqTitle').value='';
+    document.getElementById('reqDesc').value='';
+    document.getElementById('conflictAlert').style.display='none';
+    document.getElementById('noConflictAlert').style.display='none';
+  }catch(e){showError(errEl,e.message);}
+}
+
+async function renderMyEvents(){
+  const data=await API.getEvents({hod_id:currentUser.id});
+  const el=document.getElementById('myEventsList');
+  if(!data.events.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📋</div><h3>No events yet</h3></div></div>';return;}
+  el.innerHTML=data.events.map(e=>`<div class="card" style="margin-bottom:1rem"><div style="display:flex;justify-content:space-between;flex-wrap:wrap"><div><h3 style="font-size:1rem">${e.title}</h3><div style="font-size:.82rem;color:var(--text-muted)">📅 ${fmtDate(e.date)} · 📍 ${e.venue_name} · ${e.category}</div>${e.admin_note?`<div class="alert alert-info" style="margin-top:.5rem;font-size:.8rem">Admin note: ${e.admin_note}</div>`:''}</div><div style="text-align:right">${statusBadge(e.status)}${e.is_public?'<div style="font-size:.72rem;color:#10b981;margin-top:.25rem">🌐 Public</div>':''}</div></div></div>`).join('');
+}
+
+async function renderSuggestions(){
+  const data=await API.getEvents({hod_id:currentUser.id});
+  const suggestions=data.events.filter(e=>e.suggested_date);
+  const el=document.getElementById('suggestionsList');
+  if(!suggestions.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">✅</div><h3>No pending suggestions</h3></div></div>';return;}
+  el.innerHTML=suggestions.map(e=>`<div class="card" style="margin-bottom:1rem;border-color:rgba(139,92,246,0.3)"><h3 style="font-size:1rem">${e.title}</h3><div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin:1rem 0"><div style="background:rgba(239,68,68,0.08);padding:.75rem;border-radius:10px"><strong>Your Request:</strong><br>📅 ${fmtDate(e.date)} · 📍 ${e.venue_name}</div><div style="font-size:1.5rem">→</div><div style="background:rgba(16,185,129,0.08);padding:.75rem;border-radius:10px"><strong>Admin Suggests:</strong><br>📅 ${fmtDate(e.suggested_date)}${e.suggested_venue_name?' · 📍 '+e.suggested_venue_name:''}</div></div>${e.admin_note?`<div class="alert alert-info" style="font-size:.82rem;margin-bottom:1rem">💬 Admin note: ${e.admin_note}</div>`:''}<div style="display:flex;gap:.5rem"><button class="btn btn-success" onclick="respondSuggestion('${e.id}',true)">✅ Accept</button><button class="btn btn-outline" onclick="respondSuggestion('${e.id}',false)">❌ Decline</button></div></div>`).join('');
+}
+
+async function respondSuggestion(id,accept){await API.hodRespondSuggestion(id,accept);renderSuggestions();renderDashboard();}
+
+async function renderCoords(){
+  const data=await API.getCoordinatorRequests();
+  const el=document.getElementById('coordList');
+  if(!data.requests.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🎓</div><h3>No applications</h3></div></div>';return;}
+  el.innerHTML=data.requests.map(r=>`<div class="card" style="margin-bottom:1rem"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.75rem"><div><h3 style="font-size:1rem">${r.student_name}</h3><div style="font-size:.82rem;color:var(--text-muted)">${r.student_branch} · ${r.student_year} · ${r.student_email}</div><div style="font-size:.82rem;margin-top:.3rem">Event: <strong>${r.event_title}</strong></div>${r.message?`<div class="alert alert-info" style="margin-top:.5rem;font-size:.8rem">💬 "${r.message}"</div>`:''}</div><div style="text-align:right">${statusBadge(r.status)}${r.status==='pending'?`<div style="display:flex;gap:.3rem;margin-top:.5rem"><button class="btn btn-sm btn-success" onclick="updateCoord('${r.id}','approved')">✅</button><button class="btn btn-sm btn-outline" style="border-color:#ef4444;color:#ef4444" onclick="updateCoord('${r.id}','rejected')">❌</button></div>`:''}</div></div></div>`).join('');
+}
+
+async function updateCoord(id,status){await API.updateCoordinator(id,status);renderCoords();}
+
+async function renderAllEvents(){
+  const search=document.getElementById('allSearch').value;
+  const branch=document.getElementById('allBranch').value;
+  const params={status:'approved'};if(search)params.search=search;if(branch)params.branch=branch;
+  const data=await API.getEvents(params);
+  document.getElementById('allEvBody').innerHTML=data.events.map(e=>`<tr><td style="font-weight:600">${e.title}</td><td>${e.branch}</td><td>${fmtDate(e.date)}</td><td>${e.venue_name}</td><td><span class="badge" style="background:${catColors[e.category]||'#94a3b8'}22;color:${catColors[e.category]||'#94a3b8'}">${e.category}</span></td></tr>`).join('');
+}
+
+async function renderCalendar(){
+  const data=await API.getCalendar(new Date().getFullYear());
+  const el=document.getElementById('calList');
+  el.innerHTML=data.entries.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>`
+    <div style="display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;border-left:4px solid ${calTypeColors[e.type]||'#94a3b8'}">
+      <div style="min-width:50px;text-align:center"><div style="font-size:1.2rem;font-weight:800">${new Date(e.date).getDate()}</div><div style="font-size:.65rem;color:var(--text-muted);text-transform:uppercase">${new Date(e.date).toLocaleString('en',{month:'short'})}</div></div>
+      <div><div style="font-weight:600;font-size:.9rem">${e.title}</div><div style="font-size:.72rem;color:var(--text-muted)">${e.type_display}${e.end_date?' · Until '+fmtDate(e.end_date):''}${e.is_recurring?' · 🔁 Yearly':''}</div></div>
+    </div>`).join('');
+}
+
+async function renderNotifications(){
+  const data=await API.getNotifications();
+  const el=document.getElementById('notifList');
+  if(!data.notifications.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><p>No notifications.</p></div>';return;}
+  el.innerHTML=data.notifications.map(n=>`<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);cursor:pointer" onclick="markNotifRead('${n.id}')"><div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:${n.is_read?'transparent':'#8b5cf6'}"></div><div><div style="font-size:.85rem;line-height:1.5;${n.is_read?'color:var(--text-muted)':''}">${n.message}</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem">${new Date(n.created_at).toLocaleString('en-IN')}</div></div></div>`).join('');
+  updateNotifBadge();
+}
+async function markNotifRead(id){await API.markRead(id);renderNotifications();}
+</script>
+{% endblock %}
+

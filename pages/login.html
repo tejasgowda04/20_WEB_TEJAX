@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login – EduEvent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/main.css"/>
+</head>
+<body class="auth-page">
+  <div class="auth-left" id="authLeft">
+    <div class="auth-left-content">
+      <div class="auth-left-icon" id="roleIcon">🔐</div>
+      <h1 id="roleTitle">Sign In</h1>
+      <p id="roleDesc">Access your EduEvent dashboard securely.</p>
+      <br/>
+      <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:1.5rem;" id="credHints">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-form-box fade-in">
+      <h2>Welcome Back</h2>
+      <span class="role-tag" id="roleTag">User</span>
+
+      <div id="errorMsg" class="error-msg"></div>
+
+      <form id="loginForm" autocomplete="off">
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" placeholder="you@college.edu" required/>
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter password" required/>
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginBtn">
+          <span id="loginBtnText">Sign In</span>
+        </button>
+      </form>
+
+      <div class="auth-links">
+        <p>New member? <a href="register.html">Register here</a></p>
+        <p style="margin-top:.5rem"><a href="../index.html">← Back to role selection</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/static/js/db.js?v=2"></script>
+  <script src="/static/js/api.js?v=2"></script>
+  <script src="/static/js/firebase_auth.js?v=2"></script>
+{% verbatim %}
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const role   = params.get('role') || 'student';
+
+    const roleConfig = {
+      admin:   { icon:'🛡️', title:'Admin Portal',   desc:'Full system access & event management.',        tag:'Administrator', tagClass:'tag-admin',   color:'#f59e0b',
+        hints:[['admin@college.edu','admin123']] },
+      hod:     { icon:'🏛️', title:'HOD Portal',     desc:'Submit and manage your department events.',      tag:'Head of Dept',  tagClass:'tag-hod',     color:'#8b5cf6',
+        hints:[['hod.cs@college.edu','hod123'],['hod.it@college.edu','hod123']] },
+      student: { icon:'🎒', title:'Student Portal',  desc:'Explore events and register as coordinator.',    tag:'Student',       tagClass:'tag-student', color:'#10b981',
+        hints:[['amit@student.edu','stu123'],['priya@student.edu','stu123']] },
+      teacher: { icon:'📚', title:'Teacher Portal',  desc:'View branch events and organizer information.',  tag:'Faculty',       tagClass:'tag-teacher', color:'#3b82f6',
+        hints:[['anita@college.edu','tch123'],['vikas@college.edu','tch123']] },
+    };
+
+    const cfg = roleConfig[role] || roleConfig.student;
+
+    document.getElementById('roleIcon').textContent  = cfg.icon;
+    document.getElementById('roleTitle').textContent = cfg.title;
+    document.getElementById('roleDesc').textContent  = cfg.desc;
+    const tag = document.getElementById('roleTag');
+    tag.textContent = cfg.tag; tag.className = 'role-tag ' + cfg.tagClass;
+    document.title  = cfg.title + ' – EduEvent';
+
+    // Hint credentials
+    const hints = document.getElementById('credHints');
+    cfg.hints.forEach(([email, pass]) => {
+      hints.innerHTML += `<div style="background:rgba(255,255,255,0.07);padding:.6rem .9rem;border-radius:8px;font-size:.75rem;color:#94a3b8;">
+        <strong style="color:#f1f5f9;">Demo:</strong> ${email} / ${pass}</div>`;
+    });
+
+    // If already logged in via Django session, redirect automatically
+    window.addEventListener('db-ready', () => {
+      try {
+        const cur = DB.currentUser();
+        if (cur && cur.role === role) {
+          redirectToDashboard(cur.role);
+        }
+      } catch(e) {}
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass  = document.getElementById('loginPassword').value;
+      const btn   = document.getElementById('loginBtn');
+      const errEl = document.getElementById('errorMsg');
+
+      btn.innerHTML = '<span class="loader"></span>';
+      btn.disabled  = true;
+      errEl.classList.remove('show');
+
+      try {
+        const result = await firebaseLogin(email, pass, role).catch(err => {
+          throw new Error(err.message || 'Login failed. Please check credentials.');
+        });
+        
+        if (result && result.success) {
+          redirectToDashboard(role);
+        }
+      } catch(err) {
+        console.error('Login error:', err);
+        errEl.textContent = err.message;
+        errEl.classList.add('show');
+        btn.innerHTML = '<span>Sign In</span>';
+        btn.disabled  = false;
+      }
+    });
+
+    function redirectToDashboard(r) {
+      const map = { admin:'admin.html', hod:'hod.html', student:'student.html', teacher:'teacher.html' };
+      window.location.href = map[r] || 'student.html';
+    }
+  </script>
+{% endverbatim %}
+</body>
+</html>
+
