@@ -13,7 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-eduevent-dev-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')]
+
+# Parse ALLOWED_HOSTS from environment (supports comma-separated values)
+# Default includes localhost for development; add your Render URL via environment
+allowed_hosts_str = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_str.split(',') if h.strip()]
+
+# For production on Render, set ALLOWED_HOSTS env var to:
+# yourapp.onrender.com,localhost,127.0.0.1
 
 # ── Applications ─────────────────────────────────────────────────
 INSTALLED_APPS = [
